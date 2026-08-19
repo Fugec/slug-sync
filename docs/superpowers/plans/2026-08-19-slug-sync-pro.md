@@ -561,6 +561,8 @@ In `create_run()`, inside the `$run = array( ... )` literal (around line 313), a
 
 - [ ] **Step 2: Read the counters at the top of the batch**
 
+Adding these lengthens the longest variable name in that block to `$sig_non_latin`, so **realign the `=` of every assignment in the run**, from `$last_id` down to `$statuses`. WPCS aligns a contiguous run of assignments to its longest name; leaving the older lines at the previous column trips Plugin Check on submission. The same applies to the persist block in Step 4.
+
 In `run()`, immediately after the existing `$errors = isset( $run['errors'] ) ? absint( $run['errors'] ) : 0;` line, add:
 
 ```php
@@ -647,7 +649,7 @@ Add this method to the class, directly above `private static function cancel_run
 
 		echo '</ul><p class="description">' .
 			esc_html__( 'Slug Sync builds each slug from the title exactly as WordPress would. Slug Sync Pro adds rules that rewrite the title first, so codes and filler words never reach the URL and non-Latin titles are transliterated rather than percent-encoded.', 'slug-sync' ) .
-			'</p><p><a class="button" href="https://slugsync.com/pro/" target="_blank" rel="noopener noreferrer">' .
+			'</p><p><a class="button" href="' . esc_url( 'https://slugsync.com/pro/' ) . '" target="_blank" rel="noopener noreferrer">' .
 			esc_html__( 'Slug Sync Pro — $6.99, every site you own', 'slug-sync' ) .
 			'</a></p></div>';
 	}

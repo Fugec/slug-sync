@@ -1665,20 +1665,20 @@ class Slug_Sync {
 			return;
 		}
 
-		$last_id   = isset( $run['last_id'] ) ? absint( $run['last_id'] ) : 0;
-		$done      = isset( $run['done'] ) ? absint( $run['done'] ) : 0;
-		$changed   = isset( $run['changed'] ) ? absint( $run['changed'] ) : 0;
-		$errors    = isset( $run['errors'] ) ? absint( $run['errors'] ) : 0;
+		$last_id       = isset( $run['last_id'] ) ? absint( $run['last_id'] ) : 0;
+		$done          = isset( $run['done'] ) ? absint( $run['done'] ) : 0;
+		$changed       = isset( $run['changed'] ) ? absint( $run['changed'] ) : 0;
+		$errors        = isset( $run['errors'] ) ? absint( $run['errors'] ) : 0;
 		$sig_code      = isset( $run['sig_code'] ) ? absint( $run['sig_code'] ) : 0;
 		$sig_stopword  = isset( $run['sig_stopword'] ) ? absint( $run['sig_stopword'] ) : 0;
 		$sig_non_latin = isset( $run['sig_non_latin'] ) ? absint( $run['sig_non_latin'] ) : 0;
-		$apply     = isset( $run['mode'] ) && 'apply' === $run['mode'];
-		$quiet     = ! isset( $run['write'] ) || 'quiet' === $run['write'];
-		$drafts    = ! empty( $run['drafts'] );
-		$suffixed  = ! empty( $run['suffixed'] );
-		$pause     = ! empty( $run['pause_after_batch'] );
-		$post_type = isset( $run['post_type'] ) ? sanitize_key( $run['post_type'] ) : '';
-		$statuses  = $drafts
+		$apply         = isset( $run['mode'] ) && 'apply' === $run['mode'];
+		$quiet         = ! isset( $run['write'] ) || 'quiet' === $run['write'];
+		$drafts        = ! empty( $run['drafts'] );
+		$suffixed      = ! empty( $run['suffixed'] );
+		$pause         = ! empty( $run['pause_after_batch'] );
+		$post_type     = isset( $run['post_type'] ) ? sanitize_key( $run['post_type'] ) : '';
+		$statuses      = $drafts
 			? array( 'publish', 'draft', 'pending', 'private' )
 			: array( 'publish' );
 
@@ -2000,7 +2000,7 @@ class Slug_Sync {
 
 		echo '</ul><p class="description">' .
 			esc_html__( 'Slug Sync builds each slug from the title exactly as WordPress would. Slug Sync Pro adds rules that rewrite the title first, so codes and filler words never reach the URL and non-Latin titles are transliterated rather than percent-encoded.', 'slug-sync' ) .
-			'</p><p><a class="button" href="https://slugsync.com/pro/" target="_blank" rel="noopener noreferrer">' .
+			'</p><p><a class="button" href="' . esc_url( 'https://slugsync.com/pro/' ) . '" target="_blank" rel="noopener noreferrer">' .
 			esc_html__( 'Slug Sync Pro — $6.99, every site you own', 'slug-sync' ) .
 			'</a></p></div>';
 	}
