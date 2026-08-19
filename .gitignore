@@ -7,5 +7,22 @@
 /build
 *.zip
 
+# Planning notes and agent scratch — not part of the plugin
+/docs/superpowers
+
+# Local environment
+.env
+.env.*
+
+# Editors
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+*.swp
+*~
+
 # OS
 .DS_Store
+._*
+Thumbs.db
