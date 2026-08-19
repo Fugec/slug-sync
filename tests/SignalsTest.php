@@ -54,4 +54,63 @@ final class SignalsTest extends TestCase {
 		$signals = Slug_Sync_Signals::detect( 'Čokoladni Kolač' );
 		$this->assertFalse( $signals['non_latin'] );
 	}
+
+	/* Boundary cases. These pin the exact thresholds is_code_token() documents;
+	   without them a mutation loosening either threshold passes unnoticed. */
+
+	public function test_five_digit_run_is_not_a_code() {
+		$this->assertFalse( Slug_Sync_Signals::detect( 'Replacement Filter 48203' )['code'] );
+	}
+
+	public function test_six_digit_run_is_a_code() {
+		$this->assertTrue( Slug_Sync_Signals::detect( 'Replacement Filter 482039' )['code'] );
+	}
+
+	public function test_three_digits_in_mixed_token_is_not_a_code() {
+		$this->assertFalse( Slug_Sync_Signals::detect( 'Spare Part AB123' )['code'] );
+	}
+
+	public function test_four_digits_in_mixed_token_is_a_code() {
+		$this->assertTrue( Slug_Sync_Signals::detect( 'Spare Part AB1234' )['code'] );
+	}
+
+	public function test_dosage_is_not_a_code() {
+		$this->assertFalse( Slug_Sync_Signals::detect( 'Ibuprofen 400mg Tablets' )['code'] );
+	}
+
+	public function test_iu_dosage_is_not_a_code() {
+		$this->assertFalse( Slug_Sync_Signals::detect( 'Vitamin D3 10000 IU' )['code'] );
+	}
+
+	public function test_measurement_is_not_a_code() {
+		$this->assertFalse( Slug_Sync_Signals::detect( 'Screws M4 x 20mm' )['code'] );
+	}
+
+	public function test_pack_quantity_is_not_a_code() {
+		$this->assertFalse( Slug_Sync_Signals::detect( 'AAA Batteries 4-Pack' )['code'] );
+	}
+
+	public function test_fused_model_number_is_not_a_code() {
+		$this->assertFalse( Slug_Sync_Signals::detect( 'HP LaserJet Pro M404dn' )['code'] );
+	}
+
+	public function test_short_model_designation_is_not_a_code() {
+		$this->assertFalse( Slug_Sync_Signals::detect( 'Samsung Galaxy S23 Ultra' )['code'] );
+	}
+
+	public function test_three_digit_style_number_is_not_a_code() {
+		$this->assertFalse( Slug_Sync_Signals::detect( "Levi's 501 Original Fit" )['code'] );
+	}
+
+	public function test_large_capacity_measurement_is_not_a_code() {
+		$this->assertFalse( Slug_Sync_Signals::detect( 'Power Bank 20000mAh' )['code'] );
+	}
+
+	public function test_four_digit_dosage_is_not_a_code() {
+		$this->assertFalse( Slug_Sync_Signals::detect( 'Vitamin C 1000mg Tablets' )['code'] );
+	}
+
+	public function test_rated_model_designation_is_not_a_code() {
+		$this->assertFalse( Slug_Sync_Signals::detect( 'Bosch GSB 18V-55' )['code'] );
+	}
 }

@@ -88,8 +88,21 @@ class Slug_Sync_Signals {
 	 * @return bool
 	 */
 	public static function is_code_token( $token ) {
+		if ( '' === $token ) {
+			return false;
+		}
+
+		// Measurements, dosages and pack quantities are not codes. Catalogues are
+		// full of "400mg", "20mm" and "4-Pack", and counting them would overstate
+		// the figure this drives, which is worse than missing a genuine SKU.
+		if ( self::is_measurement( $token ) ) {
+			return false;
+		}
+
+		// A bare digit run has to be long to be a code. Five digits is a dosage
+		// ("10000 IU") or a year as often as it is a product number.
 		if ( preg_match( '/^#?\d+$/', $token ) ) {
-			return strlen( ltrim( $token, '#' ) ) >= 5;
+			return strlen( ltrim( $token, '#' ) ) >= 6;
 		}
 
 		if ( strlen( $token ) < 4 ) {
@@ -100,7 +113,46 @@ class Slug_Sync_Signals {
 			return false;
 		}
 
-		return (bool) preg_match( '/\d/', $token ) && (bool) preg_match( '/[A-Za-z]/', $token );
+		if ( ! preg_match( '/[A-Za-z]/', $token ) ) {
+			return false;
+		}
+
+		/*
+		 * Four or more digits in a mixed token. Model numbers people want to keep
+		 * carry fewer -- "S23", "M404dn", "iPhone 15" -- while SKUs and ASINs
+		 * such as "B09XYZ123" or "4823-BLK" carry more. The separation is not
+		 * perfect: "18V-55" is a model designation that still counts. Erring
+		 * towards under-counting is deliberate.
+		 */
+		return preg_match_all( '/\d/', $token ) >= 4;
+	}
+
+	/**
+	 * Whether a token is a measurement, dosage or pack quantity.
+	 *
+	 * @param string $token Trimmed token.
+	 * @return bool
+	 */
+	private static function is_measurement( $token ) {
+		$units = 'mg|mcg|ug|kg|g|ml|cl|dl|l|mm|cm|km|m|in|ft|yd|oz|lbs|lb|kw|w|kv|v|ma|mah|ah|hz|khz|mhz|ghz|kb|mb|gb|tb|iu|pcs|pc|pk|ct';
+
+		// "400mg", "20mm", "1.5l", "5000iu"
+		if ( preg_match( '/^\d+(?:[.,]\d+)?(?:' . $units . ')$/i', $token ) ) {
+			return true;
+		}
+
+		// "4-Pack", "10pcs", "3 x", "2x"
+		if ( preg_match( '/^\d+[-_]?(?:pack|packs|pcs|pieces|count|ct|x)$/i', $token ) ) {
+			return true;
+		}
+
+		// Rated model designations: "18V-55", "12V-30". Common across power tools,
+		// and a genuine SKU almost never takes the shape number-unit-number.
+		if ( preg_match( '/^\d+(?:' . $units . ')[-_]\d+$/i', $token ) ) {
+			return true;
+		}
+
+		return false;
 	}
 
 	/**

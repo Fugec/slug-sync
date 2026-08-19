@@ -162,15 +162,17 @@ git commit -m "feat: add slug_sync_source_title filter for add-on plugins"
 - Create: `phpunit.xml.dist`
 - Modify: `slug-sync.php` (require the include near the top)
 
+**Post-review tightening (already applied).** The first version flagged any 4+ character token mixing a letter and a digit, which counted `400mg`, `20mm`, `4-Pack`, `20000mAh`, `M404dn` and `18V-55` as product codes. Since this figure is shown to users as a specific number, over-counting destroys the trust the card exists to build, so the rule now requires **four or more digits** in a mixed token, **six or more** in a bare digit run, and excludes measurements, dosages, pack quantities and rated model designations. Under-counting is deliberate: missing a SKU costs nothing, inflating the number costs credibility. Every threshold is pinned by a boundary test — verified by mutation, all three mutations fail the suite.
+
 **Acceptance Criteria:**
 - [ ] `Slug_Sync_Signals::detect()` returns an array with boolean keys `code`, `stopword`, `non_latin`
 - [ ] The class calls no WordPress function, so PHPUnit loads it directly with `require`
 - [ ] `iPhone 15` is **not** flagged as containing a code (short digit runs are model numbers, not SKUs)
 - [ ] `Nike Air Max 90 - White - SKU 4823-BLK` is flagged as containing a code
 - [ ] `Кофеварка Bosch` is flagged non-Latin
-- [ ] All tests pass
+- [ ] All tests pass, including boundary tests pinning both digit thresholds and the measurement guard
 
-**Verify:** `vendor/bin/phpunit` → `OK (9 tests, ...)`
+**Verify:** `vendor/bin/phpunit` → `OK (23 tests, ...)`
 
 **Steps:**
 
@@ -219,6 +221,8 @@ Run: `composer install`
 Expected: `vendor/` created, phpunit installed.
 
 - [ ] **Step 2: Write the failing tests**
+
+The nine tests below are the original spec and all still hold. `tests/SignalsTest.php` as shipped carries fourteen more that pin the thresholds — five/six-digit runs, three/four digits in a mixed token, dosages, measurements, pack quantities, fused model numbers and rated designations. Treat the shipped file as authoritative; these nine are the starting point, not the finished suite.
 
 `tests/SignalsTest.php`:
 
@@ -382,8 +386,21 @@ class Slug_Sync_Signals {
 	 * @return bool
 	 */
 	public static function is_code_token( $token ) {
+		if ( '' === $token ) {
+			return false;
+		}
+
+		// Measurements, dosages and pack quantities are not codes. Catalogues are
+		// full of "400mg", "20mm" and "4-Pack", and counting them would overstate
+		// the figure this drives, which is worse than missing a genuine SKU.
+		if ( self::is_measurement( $token ) ) {
+			return false;
+		}
+
+		// A bare digit run has to be long to be a code. Five digits is a dosage
+		// ("10000 IU") or a year as often as it is a product number.
 		if ( preg_match( '/^#?\d+$/', $token ) ) {
-			return strlen( ltrim( $token, '#' ) ) >= 5;
+			return strlen( ltrim( $token, '#' ) ) >= 6;
 		}
 
 		if ( strlen( $token ) < 4 ) {
@@ -394,7 +411,46 @@ class Slug_Sync_Signals {
 			return false;
 		}
 
-		return (bool) preg_match( '/\d/', $token ) && (bool) preg_match( '/[A-Za-z]/', $token );
+		if ( ! preg_match( '/[A-Za-z]/', $token ) ) {
+			return false;
+		}
+
+		/*
+		 * Four or more digits in a mixed token. Model numbers people want to keep
+		 * carry fewer -- "S23", "M404dn", "iPhone 15" -- while SKUs and ASINs
+		 * such as "B09XYZ123" or "4823-BLK" carry more. The separation is not
+		 * perfect: "18V-55" is a model designation that still counts. Erring
+		 * towards under-counting is deliberate.
+		 */
+		return preg_match_all( '/\d/', $token ) >= 4;
+	}
+
+	/**
+	 * Whether a token is a measurement, dosage or pack quantity.
+	 *
+	 * @param string $token Trimmed token.
+	 * @return bool
+	 */
+	private static function is_measurement( $token ) {
+		$units = 'mg|mcg|ug|kg|g|ml|cl|dl|l|mm|cm|km|m|in|ft|yd|oz|lbs|lb|kw|w|kv|v|ma|mah|ah|hz|khz|mhz|ghz|kb|mb|gb|tb|iu|pcs|pc|pk|ct';
+
+		// "400mg", "20mm", "1.5l", "5000iu"
+		if ( preg_match( '/^\d+(?:[.,]\d+)?(?:' . $units . ')$/i', $token ) ) {
+			return true;
+		}
+
+		// "4-Pack", "10pcs", "3 x", "2x"
+		if ( preg_match( '/^\d+[-_]?(?:pack|packs|pcs|pieces|count|ct|x)$/i', $token ) ) {
+			return true;
+		}
+
+		// Rated model designations: "18V-55", "12V-30". Common across power tools,
+		// and a genuine SKU almost never takes the shape number-unit-number.
+		if ( preg_match( '/^\d+(?:' . $units . ')[-_]\d+$/i', $token ) ) {
+			return true;
+		}
+
+		return false;
 	}
 
 	/**
@@ -452,7 +508,7 @@ class Slug_Sync_Signals {
 - [ ] **Step 5: Run the tests to verify they pass**
 
 Run: `vendor/bin/phpunit`
-Expected: `OK (9 tests, 9 assertions)`
+Expected: `OK (23 tests, 23 assertions)`
 
 If `test_latin_diacritics_are_not_non_latin` fails, the `(?!\p{Latin})\p{L}` construct is matching combining marks. Replace `has_non_latin()`'s second pattern with `'/[^\p{Latin}\p{Common}\p{Inherited}]/u'` and re-run.
 
