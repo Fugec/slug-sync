@@ -989,11 +989,16 @@ git commit -m "chore: scaffold Slug Sync Pro"
 - Create: `~/Desktop/slug-sync-pro/tests/LicenseTest.php`
 - Create: `~/Desktop/slug-sync-pro/bin/make-keypair.php`
 - Create: `~/Desktop/slug-sync-pro/bin/sign-key.php`
+- Create: `~/Desktop/slug-sync-pro/bin/revoke.php`
 - Modify: `~/Desktop/slug-sync-pro/slug-sync-pro.php` (the `SLUG_SYNC_PRO_PUBLIC_KEY` constant)
 
-**Key format:** `SS1.<base64url(payload)>.<base64url(signature)>` where payload is JSON `{"v":1,"p":"slug-sync-pro","e":"buyer@example.com","i":1755561600}`.
+**Key format:** `SS1.<base64url(payload)>.<base64url(signature)>` where payload is JSON `{"v":1,"p":"slug-sync-pro","e":"buyer@example.com"}`.
 
-There is no site count, no expiry and no activation field, because the product is unlimited sites and one-time. `i` (issued-at) exists solely so a future version could reject keys minted before a cutoff if a batch ever leaks — do not build that now.
+There is no site count, no expiry and no activation field, because the product is unlimited sites and one-time.
+
+**The payload carries no timestamp, deliberately.** That makes the key a pure function of the email: the same address always produces a byte-identical key. A "retrieve my key" page can therefore re-derive it forever — ask the store's API whether that address has a completed order, re-sign, display. No database, no stored state, and **no transactional email service needed at all**, which is what replaces email delivery.
+
+Sharing is not prevented, and cannot be: the plugin is GPL and runs on the buyer's own server, so any check is one edit away from removal. What the design gives instead is **traceability** — every key is a signature over its buyer's email, and the licence screen displays it — plus the revocation blocklist below as the lever for the rare case where a key turns up publicly.
 
 **Acceptance Criteria:**
 - [ ] A key signed by `bin/sign-key.php` verifies against the embedded public key
@@ -1001,9 +1006,12 @@ There is no site count, no expiry and no activation field, because the product i
 - [ ] A key with a tampered signature fails
 - [ ] A key for a different product string fails
 - [ ] Malformed input returns `false` and never throws
+- [ ] The same email always mints a byte-identical key, so it can be re-derived rather than stored
+- [ ] A key whose email hash appears in the revocation list fails verification even though its signature is valid
+- [ ] The revocation list holds SHA-256 hashes, never plaintext addresses
 - [ ] `License::verify()` makes no network call and touches no WordPress function
 
-**Verify:** `cd ~/Desktop/slug-sync-pro && vendor/bin/phpunit --filter LicenseTest` → `OK (8 tests, ...)`
+**Verify:** `cd ~/Desktop/slug-sync-pro && vendor/bin/phpunit --filter LicenseTest` → `OK (13 tests, ...)`
 
 **Steps:**
 
@@ -1106,6 +1114,37 @@ final class LicenseTest extends TestCase {
 		$this->assertIsArray( License::verify( "  \n" . $key . "  \t", $this->public_key ) );
 	}
 
+	public function test_same_email_always_mints_an_identical_key() {
+		$this->assertSame(
+			$this->make_key( $this->valid_payload() ),
+			$this->make_key( $this->valid_payload() ),
+			'Keys must be deterministic so they can be re-derived rather than stored.'
+		);
+	}
+
+	public function test_revocation_hash_normalises_case_and_whitespace() {
+		$this->assertSame(
+			License::revocation_hash( 'buyer@example.com' ),
+			License::revocation_hash( '  BUYER@Example.COM  ' )
+		);
+	}
+
+	public function test_revocation_list_holds_hashes_not_addresses() {
+		$this->assertSame( 64, strlen( License::revocation_hash( 'buyer@example.com' ) ) );
+		$this->assertMatchesRegularExpression( '/^[0-9a-f]{64}$/', License::revocation_hash( 'buyer@example.com' ) );
+	}
+
+	public function test_revoked_email_is_rejected() {
+		$revoked = array( License::revocation_hash( 'buyer@example.com' ) => true );
+
+		$this->assertTrue( License::is_revoked( 'buyer@example.com', $revoked ) );
+		$this->assertFalse( License::is_revoked( 'someone@else.com', $revoked ) );
+	}
+
+	public function test_empty_revocation_list_revokes_nobody() {
+		$this->assertFalse( License::is_revoked( 'buyer@example.com', array() ) );
+	}
+
 	public function test_base64url_roundtrip() {
 		$raw = random_bytes( 64 );
 
@@ -1145,6 +1184,21 @@ final class License {
 	const PREFIX  = 'SS1';
 	const PRODUCT = 'slug-sync-pro';
 	const VERSION = 1;
+
+	/**
+	 * Revoked licences, as SHA-256 hashes of the lowercased email.
+	 *
+	 * Hashes rather than addresses: buyers receive this source under the GPL, and
+	 * shipping a plaintext list would publish the customer list along with it.
+	 *
+	 * Sharing cannot be prevented -- the plugin is GPL and runs on the buyer's own
+	 * server, so any check is one edit away from removal. This exists for the rare
+	 * case of a key posted publicly, and bites only sites that take updates.
+	 * Generate entries with bin/revoke.php.
+	 *
+	 * @var array<string,bool>
+	 */
+	const REVOKED = array();
 
 	/**
 	 * Verify a license key against a raw 32-byte Ed25519 public key.
@@ -1197,7 +1251,38 @@ final class License {
 			return false;
 		}
 
+		if ( self::is_revoked( $data['e'] ) ) {
+			return false;
+		}
+
 		return $data;
+	}
+
+	/**
+	 * Whether a licensed email has been revoked.
+	 *
+	 * @param string     $email   Licensed email from the payload.
+	 * @param array|null $revoked Override list, for tests. Defaults to self::REVOKED.
+	 * @return bool
+	 */
+	public static function is_revoked( $email, array $revoked = null ) {
+		$revoked = ( null === $revoked ) ? self::REVOKED : $revoked;
+
+		if ( ! $revoked ) {
+			return false;
+		}
+
+		return isset( $revoked[ self::revocation_hash( $email ) ] );
+	}
+
+	/**
+	 * Hash an email the way the revocation list stores it.
+	 *
+	 * @param string $email Email address.
+	 * @return string Lowercase hex SHA-256.
+	 */
+	public static function revocation_hash( $email ) {
+		return hash( 'sha256', strtolower( trim( (string) $email ) ) );
 	}
 
 	/**
@@ -1236,7 +1321,7 @@ final class License {
 - [ ] **Step 4: Run the tests to verify they pass**
 
 Run: `vendor/bin/phpunit --filter LicenseTest`
-Expected: `OK (8 tests, 11 assertions)`
+Expected: `OK (13 tests, ...)`
 
 - [ ] **Step 5: Write the keypair generator**
 
@@ -1353,7 +1438,6 @@ $payload = json_encode(
 		'v' => License::VERSION,
 		'p' => License::PRODUCT,
 		'e' => strtolower( $email ),
-		'i' => time(),
 	),
 	JSON_UNESCAPED_SLASHES
 );
@@ -1362,6 +1446,45 @@ $sig = sodium_crypto_sign_detached( $payload, $secret );
 
 echo 'SS1.' . License::b64url_encode( $payload ) . '.' . License::b64url_encode( $sig ) . "\n";
 ```
+
+- [ ] **Step 7b: Write the revocation helper**
+
+`bin/revoke.php`:
+
+```php
+<?php
+/**
+ * Prints the revocation-list entry for one email.
+ *
+ * Usage: php bin/revoke.php leaked@example.com
+ *
+ * Paste the printed line into License::REVOKED and ship a plugin update. Only
+ * sites that take the update are affected, and anyone willing to edit the file
+ * is unaffected entirely -- this is a lever for a key posted publicly, not a
+ * copy-protection scheme.
+ *
+ * @package Slug_Sync_Pro
+ */
+
+if ( PHP_SAPI !== 'cli' ) {
+	exit( 1 );
+}
+
+require_once __DIR__ . '/../src/License.php';
+
+use SlugSync\Pro\License;
+
+$email = isset( $argv[1] ) ? trim( $argv[1] ) : '';
+
+if ( ! filter_var( $email, FILTER_VALIDATE_EMAIL ) ) {
+	fwrite( STDERR, "Usage: php bin/revoke.php leaked@example.com\n" );
+	exit( 1 );
+}
+
+printf( "'%s' => true, // %s\n", License::revocation_hash( $email ), $email );
+```
+
+Note the trailing comment carries the plaintext address. Strip it before committing if you would rather not keep the mapping in the repository; the hash alone is what the check uses.
 
 - [ ] **Step 8: Verify a real key end to end**
 
