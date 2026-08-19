@@ -1,5 +1,8 @@
 /.git
 /.github
+/.wordpress-org
+/bin
+/build
 /docs
 /tests
 /vendor

@@ -87,9 +87,11 @@ It processes in batches and continues automatically, and there is an option to s
 
 == Screenshots ==
 
-1. The guided setup screen with plain-language Preview, Apply, write method and scope choices.
-2. A preview run listing the slugs that would change.
-3. Previous runs with report downloads, resume controls and Undo changes actions.
+1. The guided setup screen: content type, Preview or Apply, how each slug is saved, and what is included, each with a plain-language explanation.
+2. A run paused after its first batch, with resume and stop controls above the full run history.
+3. A completed preview listing every old slug beside the slug it would become, with per-run report downloads and Undo below.
+4. The redirect report: relative source and target pairs with no header row, ready to import into a redirect plugin.
+5. The changes report: every item with its title, old and new slug, old and new URL, and a note column flagging duplicate titles.
 
 == Changelog ==
 
