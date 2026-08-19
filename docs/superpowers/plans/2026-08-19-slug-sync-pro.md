@@ -493,12 +493,14 @@ git commit -m "feat: add pure signal detector with unit tests"
 
 - [ ] **Step 1: Add signal counters to the run record**
 
+Align the `=>` operators with the surrounding array entries (keys padded to the width of `'pause_after_batch'`). `WordPress.Arrays.MultipleStatementAlignment` flags a mismatched column, and wordpress.org runs Plugin Check on submission.
+
 In `create_run()`, inside the `$run = array( ... )` literal (around line 313), add after `'errors' => 0,`:
 
 ```php
-			'sig_code'      => 0,
-			'sig_stopword'  => 0,
-			'sig_non_latin' => 0,
+			'sig_code'          => 0,
+			'sig_stopword'      => 0,
+			'sig_non_latin'     => 0,
 ```
 
 - [ ] **Step 2: Read the counters at the top of the batch**
@@ -534,9 +536,9 @@ In the `foreach ( $rows as $row )` loop, immediately after `$done++;` and *befor
 In the block that assigns `$run['done']`, `$run['total']` and so on before `self::save_run( $run );`, add:
 
 ```php
-		$run['sig_code']      = $sig_code;
-		$run['sig_stopword']  = $sig_stopword;
-		$run['sig_non_latin'] = $sig_non_latin;
+		$run['sig_code']          = $sig_code;
+		$run['sig_stopword']      = $sig_stopword;
+		$run['sig_non_latin']     = $sig_non_latin;
 ```
 
 - [ ] **Step 5: Add the card renderer**

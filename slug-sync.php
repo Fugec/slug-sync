@@ -319,6 +319,9 @@ class Slug_Sync {
 			'total'             => 0,
 			'changed'           => 0,
 			'errors'            => 0,
+			'sig_code'          => 0,
+			'sig_stopword'      => 0,
+			'sig_non_latin'     => 0,
 		);
 
 		if ( ! self::add_option_once( self::ACTIVE_OPT, $run_id ) ) {
@@ -1666,6 +1669,9 @@ class Slug_Sync {
 		$done      = isset( $run['done'] ) ? absint( $run['done'] ) : 0;
 		$changed   = isset( $run['changed'] ) ? absint( $run['changed'] ) : 0;
 		$errors    = isset( $run['errors'] ) ? absint( $run['errors'] ) : 0;
+		$sig_code      = isset( $run['sig_code'] ) ? absint( $run['sig_code'] ) : 0;
+		$sig_stopword  = isset( $run['sig_stopword'] ) ? absint( $run['sig_stopword'] ) : 0;
+		$sig_non_latin = isset( $run['sig_non_latin'] ) ? absint( $run['sig_non_latin'] ) : 0;
 		$apply     = isset( $run['mode'] ) && 'apply' === $run['mode'];
 		$quiet     = ! isset( $run['write'] ) || 'quiet' === $run['write'];
 		$drafts    = ! empty( $run['drafts'] );
@@ -1775,6 +1781,18 @@ class Slug_Sync {
 			$next_last = (int) $row->ID;
 			$done++;
 
+			$signals = Slug_Sync_Signals::detect( $row->post_title );
+
+			if ( $signals['code'] ) {
+				$sig_code++;
+			}
+			if ( $signals['stopword'] ) {
+				$sig_stopword++;
+			}
+			if ( $signals['non_latin'] ) {
+				$sig_non_latin++;
+			}
+
 			/**
 			 * Filters the title a slug is generated from.
 			 *
@@ -1856,6 +1874,9 @@ class Slug_Sync {
 		$run['total']             = $total;
 		$run['changed']           = $changed + $batch_changed;
 		$run['errors']            = $errors + $batch_errors;
+		$run['sig_code']          = $sig_code;
+		$run['sig_stopword']      = $sig_stopword;
+		$run['sig_non_latin']     = $sig_non_latin;
 		$run['updated_at']        = time();
 		$run['pause_after_batch'] = false;
 
@@ -1911,6 +1932,8 @@ class Slug_Sync {
 					'</p></div>';
 			}
 
+			self::upsell_card( $run );
+
 			printf(
 				'<p><a class="button" href="%s">%s</a></p>',
 				esc_url( self::page_url() ),
@@ -1930,6 +1953,56 @@ class Slug_Sync {
 
 		echo '<p class="description">' . esc_html__( 'The next batch will start automatically.', 'slug-sync' ) . '</p>';
 		self::run_controls( $run, true );
+	}
+
+	/**
+	 * Contextual note about what a rules add-on would change in this run.
+	 *
+	 * Rendered on the plugin's own screen, after a completed run, and only when
+	 * the run actually found something. Guideline 11 permits an upsell here; it
+	 * does not permit an admin notice, and there is deliberately none.
+	 *
+	 * @param array $run Completed run record.
+	 */
+	private static function upsell_card( $run ) {
+		$code      = isset( $run['sig_code'] ) ? absint( $run['sig_code'] ) : 0;
+		$stopword  = isset( $run['sig_stopword'] ) ? absint( $run['sig_stopword'] ) : 0;
+		$non_latin = isset( $run['sig_non_latin'] ) ? absint( $run['sig_non_latin'] ) : 0;
+
+		if ( ! $code && ! $stopword && ! $non_latin ) {
+			return;
+		}
+
+		if ( has_filter( 'slug_sync_source_title' ) ) {
+			return; // A rules add-on is already installed.
+		}
+
+		$lines = array();
+
+		if ( $code ) {
+			/* translators: %d: number of titles. */
+			$lines[] = sprintf( _n( '%d title contains a product code or SKU.', '%d titles contain a product code or SKU.', $code, 'slug-sync' ), $code );
+		}
+		if ( $non_latin ) {
+			/* translators: %d: number of titles. */
+			$lines[] = sprintf( _n( '%d title is written in a non-Latin script.', '%d titles are written in a non-Latin script.', $non_latin, 'slug-sync' ), $non_latin );
+		}
+		if ( $stopword ) {
+			/* translators: %d: number of titles. */
+			$lines[] = sprintf( _n( '%d title contains common filler words.', '%d titles contain common filler words.', $stopword, 'slug-sync' ), $stopword );
+		}
+
+		echo '<div class="slug-sync-card"><h2>' . esc_html__( 'About these titles', 'slug-sync' ) . '</h2><ul>';
+
+		foreach ( $lines as $line ) {
+			echo '<li>' . esc_html( $line ) . '</li>';
+		}
+
+		echo '</ul><p class="description">' .
+			esc_html__( 'Slug Sync builds each slug from the title exactly as WordPress would. Slug Sync Pro adds rules that rewrite the title first, so codes and filler words never reach the URL and non-Latin titles are transliterated rather than percent-encoded.', 'slug-sync' ) .
+			'</p><p><a class="button" href="https://slugsync.com/pro/" target="_blank" rel="noopener noreferrer">' .
+			esc_html__( 'Slug Sync Pro — $6.99, every site you own', 'slug-sync' ) .
+			'</a></p></div>';
 	}
 
 	/**
