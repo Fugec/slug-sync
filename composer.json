@@ -1,0 +1,14 @@
+{
+	"name": "arminkapetanovic/slug-sync",
+	"description": "Development tooling for the Slug Sync plugin. Not shipped.",
+	"license": "GPL-2.0-or-later",
+	"type": "wordpress-plugin",
+	"require-dev": {
+		"phpunit/phpunit": "^9.6"
+	},
+	"config": {
+		"platform": {
+			"php": "7.4"
+		}
+	}
+}

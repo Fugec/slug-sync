@@ -1,0 +1,11 @@
+# Dev tooling — never shipped to wordpress.org either (see .distignore)
+/vendor
+/node_modules
+.phpunit.result.cache
+
+# Build output
+/build
+*.zip
+
+# OS
+.DS_Store
