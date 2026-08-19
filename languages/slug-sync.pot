@@ -528,7 +528,7 @@ msgid "Slug Sync builds each slug from the title exactly as WordPress would. Slu
 msgstr ""
 
 #: slug-sync.php:2004
-msgid "Slug Sync Pro — $6.99, every site you own"
+msgid "Slug Sync Pro — $4.99, every site you own"
 msgstr ""
 
 #: slug-sync.php:2017
