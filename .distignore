@@ -14,5 +14,6 @@ phpunit.xml.dist
 .distignore
 .gitignore
 .gitattributes
+README.md
 architecture.md
 todo.md
