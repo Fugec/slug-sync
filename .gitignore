@@ -9,6 +9,8 @@
 
 # Planning notes and agent scratch — not part of the plugin
 /docs/superpowers
+/architecture.md
+/todo.md
 
 # Local environment
 .env

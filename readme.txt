@@ -4,7 +4,7 @@ Tags: slug, permalink, seo, woocommerce, redirect
 Requires at least: 5.6
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.1.0
+Stable tag: 1.0.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 Author: Armin Kapetanovic
@@ -95,10 +95,6 @@ It processes in batches and continues automatically, and there is an option to s
 
 == Changelog ==
 
-= 1.1.0 =
-* Added the `slug_sync_source_title` filter so add-on plugins can rewrite a title before its slug is generated.
-* Preview now reports how many titles contain product codes, filler words or non-Latin script.
-
 = 1.0.0 =
 * Initial release.
 * Guided Preview, Review and Apply workflow with plain-language explanations for every write method and scope option.
@@ -107,3 +103,5 @@ It processes in batches and continues automatically, and there is an option to s
 * Quiet writes that skip `save_post` hooks, or a full update that fires them.
 * Persistent run history with per-run change and redirect reports, and per-run undo.
 * Resume and cancel controls for interrupted runs, with an atomic lock preventing overlapping runs.
+* Preview reports how many titles contain product codes, filler words or non-Latin script.
+* The `slug_sync_source_title` filter lets add-on plugins rewrite a title before its slug is generated.

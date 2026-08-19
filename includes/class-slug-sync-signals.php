@@ -9,9 +9,8 @@
  * @package Slug_Sync
  */
 
-if ( ! defined( 'ABSPATH' ) && ! defined( 'SLUG_SYNC_TESTING' ) ) {
-	// Loaded directly by PHPUnit; nothing to guard against there.
-	define( 'SLUG_SYNC_TESTING', true );
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
 }
 
 /**

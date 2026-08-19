@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Slug Sync
  * Description:       Rewrites post, page, product and custom post type slugs to match their titles. Previews every change first, keeps the old URLs redirecting, exports a redirect map, and can roll the whole run back.
- * Version:           1.1.0
+ * Version:           1.0.0
  * Requires at least: 5.6
  * Requires PHP:      7.4
  * Author:            Armin Kapetanovic
@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'SLUG_SYNC_VERSION', '1.1.0' );
+define( 'SLUG_SYNC_VERSION', '1.0.0' );
 
 require_once __DIR__ . '/includes/class-slug-sync-signals.php';
 
@@ -1688,7 +1688,7 @@ class Slug_Sync {
 		$redirect_path = self::report_path( $run_id, 'redirects' );
 
 		if ( $is_first ) {
-			delete_transient( self::CLAIM_KEY ); // Clean up the pre-1.1 global claim transient.
+			delete_transient( self::CLAIM_KEY ); // Clean up the older global claim transient.
 			self::reset_claims( $run_id );
 		} elseif ( ! is_file( $changes_path ) || ! is_file( $redirect_path ) ) {
 			$run['status']     = 'paused';
@@ -1800,7 +1800,7 @@ class Slug_Sync {
 			 * any script; the result is sanitised and length-capped afterwards
 			 * either way. Returning an empty string makes the run skip the post.
 			 *
-			 * @since 1.1.0
+			 * @since 1.0.0
 			 *
 			 * @param string $title     Post title as stored.
 			 * @param object $row       Row with ID, post_title, post_name, post_status, post_parent.

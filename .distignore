@@ -13,3 +13,5 @@ phpunit.xml.dist
 .phpunit.result.cache
 .distignore
 .gitignore
+architecture.md
+todo.md
