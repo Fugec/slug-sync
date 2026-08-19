@@ -1,0 +1,15 @@
+# Keeps development files out of GitHub's source archives, the same way
+# .distignore keeps them out of the wordpress.org build. It cannot change the
+# folder name inside those archives -- GitHub always uses <repo>-<ref> -- so
+# the release asset built by bin/build.sh remains the only installable download.
+/.distignore      export-ignore
+/.gitattributes   export-ignore
+/.github          export-ignore
+/.gitignore       export-ignore
+/.wordpress-org   export-ignore
+/bin              export-ignore
+/composer.json    export-ignore
+/composer.lock    export-ignore
+/docs             export-ignore
+/phpunit.xml.dist export-ignore
+/tests            export-ignore
