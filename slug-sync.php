@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Slug Sync
  * Description:       Rewrites post, page, product and custom post type slugs to match their titles. Previews every change first, keeps the old URLs redirecting, exports a redirect map, and can roll the whole run back.
- * Version:           1.0.0
+ * Version:           1.1.0
  * Requires at least: 5.6
  * Requires PHP:      7.4
  * Author:            Armin Kapetanovic
@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'SLUG_SYNC_VERSION', '1.0.0' );
+define( 'SLUG_SYNC_VERSION', '1.1.0' );
 
 require_once __DIR__ . '/includes/class-slug-sync-signals.php';
 

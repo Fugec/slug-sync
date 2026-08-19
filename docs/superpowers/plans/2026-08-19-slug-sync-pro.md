@@ -762,6 +762,7 @@ composer.lock
 phpunit.xml.dist
 .phpunit.result.cache
 .distignore
+.gitignore
 ```
 
 - [ ] **Step 7: Verify the version is consistent**

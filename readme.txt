@@ -4,7 +4,7 @@ Tags: slug, permalink, seo, woocommerce, redirect
 Requires at least: 5.6
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.0.0
+Stable tag: 1.1.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 Author: Armin Kapetanovic
@@ -50,7 +50,12 @@ Batch progress is stored by WordPress rather than only in the browser. If a tab 
 * Slugs are capped at a word boundary before they can overflow the database column.
 * Reports are written to a directory with a random name, so your content is not enumerable.
 * Restricted to administrators.
-* No telemetry, no external requests, no upsells.
+* No telemetry and no external requests. The plugin never contacts a server.
+* Everything above is uncapped: no item limit, no trial, nothing expires.
+
+**About Slug Sync Pro**
+
+Slug Sync is complete on its own and has no limits. Slug Sync Pro is a separate add-on, sold at slugsync.com, that rewrites the title before the slug is built: it strips product codes and SKUs, drops filler words, and transliterates non-Latin titles instead of letting them be percent-encoded. It is not required for anything described above.
 
 == Installation ==
 
@@ -87,6 +92,10 @@ It processes in batches and continues automatically, and there is an option to s
 3. Previous runs with report downloads, resume controls and Undo changes actions.
 
 == Changelog ==
+
+= 1.1.0 =
+* Added the `slug_sync_source_title` filter so add-on plugins can rewrite a title before its slug is generated.
+* Preview now reports how many titles contain product codes, filler words or non-Latin script.
 
 = 1.0.0 =
 * Initial release.
