@@ -7,12 +7,13 @@ first, old URLs still redirecting, an exportable redirect map, and a full undo.
 
 ## Download
 
-**[⬇ Download the latest release](https://github.com/Fugec/slug-sync/releases/latest/download/slug-sync.zip)**
+**[⬇ Download Slug Sync](https://github.com/Fugec/slug-sync/releases/download/dev/slug-sync.zip)**
 
 Then in WordPress: **Plugins → Add New → Upload Plugin → Choose File → Install Now**.
 
-Every release is also listed under [Releases](https://github.com/Fugec/slug-sync/releases) with a
-version-stamped file (`slug-sync-1.0.0.zip`) if you need a specific one.
+That link is rebuilt from `main` on every push, so it always carries the latest changes. Fixed,
+version-stamped builds (`slug-sync-1.0.0.zip`) are listed under
+[Releases](https://github.com/Fugec/slug-sync/releases) if you need to pin one.
 
 ### ⚠️ Do not use the green “Code → Download ZIP” button
 
@@ -24,7 +25,7 @@ WordPress treats a plugin's **folder name as its identity**, so that copy:
 - and includes development files that are not part of the plugin.
 
 GitHub always names that archive `<repo>-<branch>` and it cannot be configured. It is a source
-snapshot for developers, not an installable plugin. Use the release link above instead.
+snapshot for developers, not an installable plugin. Use the download link above instead.
 
 ---
 
@@ -40,9 +41,11 @@ bash bin/build.sh    # → build/slug-sync-<version>.zip
 stages it into a folder named `slug-sync`, which is the plugin slug. It refuses to build if the
 version in the plugin header, `SLUG_SYNC_VERSION` and the readme's `Stable tag` disagree.
 
-Pushing a `v*` tag runs [`.github/workflows/release.yml`](.github/workflows/release.yml), which
-checks the tag against the plugin header, builds, and publishes both the versioned and the
-stable-named zip as release assets.
+Two workflows publish that zip. Every push to `main` runs
+[`dev-build.yml`](.github/workflows/dev-build.yml), which rebuilds it and republishes the `dev`
+prerelease behind the download link above. Pushing a `v*` tag runs
+[`release.yml`](.github/workflows/release.yml), which checks the tag against the plugin header,
+builds, and publishes both the versioned and the stable-named zip as a real release.
 
 ## Licence
 

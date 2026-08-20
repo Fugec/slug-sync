@@ -1,0 +1,62 @@
+name: Dev build
+
+# Keeps one permanent download that always contains the current code, for
+# people installing from GitHub while the plugin is not on wordpress.org yet.
+# Every push to main rebuilds the plugin zip and republishes it behind the
+# "dev" tag, so /releases/download/dev/slug-sync.zip never goes stale.
+#
+# This does not replace release.yml: pushing a v* tag still cuts a real,
+# version-stamped release, and that is what a directory submission is built
+# from. The dev release is marked as a prerelease so it never becomes the
+# "Latest" one GitHub links to.
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# Two pushes in quick succession would otherwise race to delete and recreate
+# the same release, and the loser could leave it without an asset.
+concurrency:
+  group: dev-build
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # build.sh cross-checks the plugin header, SLUG_SYNC_VERSION and the
+      # readme's Stable tag, so a half-finished version bump fails here rather
+      # than being handed to someone as a download.
+      - name: Build the plugin zip
+        run: bash bin/build.sh
+
+      # The download URL has to stay the same forever, so the asset cannot
+      # carry the version in its name. Both zips unpack to a folder named
+      # slug-sync either way.
+      - name: Add a stable-named copy
+        run: cp build/slug-sync-*.zip build/slug-sync.zip
+
+      # Recreating the release is what moves the dev tag onto this commit.
+      # gh release delete --cleanup-tag removes both, so the tag cannot drift
+      # away from the code the asset was built from.
+      - name: Republish the dev release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete dev --yes --cleanup-tag || true
+
+          gh release create dev build/slug-sync.zip \
+            --title "Latest build (main)" \
+            --prerelease \
+            --target "$GITHUB_SHA" \
+            --notes "Built from [\`${GITHUB_SHA:0:7}\`](https://github.com/${GITHUB_REPOSITORY}/commit/${GITHUB_SHA}) on $(date -u '+%Y-%m-%d %H:%M UTC').
+
+          This is the current state of \`main\`, rebuilt on every push. For a fixed, version-stamped build see the tagged releases."
