@@ -13,6 +13,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+if ( class_exists( 'Slug_Sync_Signals' ) ) {
+	return;
+}
+
 /**
  * Reports what a title contains, without changing it.
  */

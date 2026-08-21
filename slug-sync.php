@@ -18,6 +18,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/*
+ * A second copy of the plugin -- a manual install left in place beside the
+ * directory version, say -- would otherwise fatal on the duplicate class
+ * declaration, before WordPress could report which plugin caused it.
+ */
+if ( class_exists( 'Slug_Sync' ) ) {
+	return;
+}
+
 define( 'SLUG_SYNC_VERSION', '1.0.0' );
 
 require_once __DIR__ . '/includes/class-slug-sync-signals.php';
@@ -38,6 +47,12 @@ class Slug_Sync {
 
 	/** post_name is varchar(200); leave headroom for -NN uniqueness suffixes. */
 	const MAX_SLUG = 190;
+
+	/** Finished runs kept in history before the oldest are pruned with their reports. */
+	const MAX_RUNS = 50;
+
+	/** Advertised Pro price, kept out of the translatable sentence around it. */
+	const PRO_PRICE = '$4.99';
 
 	/**
 	 * In-request slug claims for a preview run, keyed by run ID then by slug.
@@ -242,6 +257,55 @@ class Slug_Sync {
 	}
 
 	/**
+	 * Keep the stored run history bounded.
+	 *
+	 * Every run adds an entry to one option and two CSVs under uploads, and
+	 * nothing removed either before uninstall. A site that runs this weekly for
+	 * a year would carry fifty megabytes of stale reports it never asked for, so
+	 * finished runs past MAX_RUNS are dropped together with their files.
+	 *
+	 * Unfinished runs are never pruned: one of them may still be resumable, and
+	 * deleting its reports would strand it. Runs are stored oldest first, which
+	 * is the order they are dropped in.
+	 *
+	 * @param string $keep_id Run ID that must survive pruning.
+	 */
+	private static function prune_runs( $keep_id = '' ) {
+		$runs = self::runs();
+
+		if ( count( $runs ) <= self::MAX_RUNS ) {
+			return;
+		}
+
+		$keep_id = sanitize_key( $keep_id );
+		$stale   = array_slice( $runs, 0, count( $runs ) - self::MAX_RUNS, true );
+		$pruned  = false;
+
+		foreach ( array_keys( $stale ) as $run_id ) {
+			if ( $run_id === $keep_id || ! self::run_is_finished( $runs[ $run_id ] ) ) {
+				continue;
+			}
+
+			foreach ( array( 'changes', 'redirects' ) as $report ) {
+				$path = self::report_path( $run_id, $report );
+
+				if ( $path && is_file( $path ) ) {
+					// phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
+					unlink( $path );
+				}
+			}
+
+			self::reset_claims( $run_id );
+			unset( $runs[ $run_id ] );
+			$pruned = true;
+		}
+
+		if ( $pruned ) {
+			update_option( self::RUNS_OPT, $runs, false );
+		}
+	}
+
+	/**
 	 * Whether a run has reached a terminal state.
 	 *
 	 * @param array<string,mixed> $run Run record.
@@ -329,6 +393,8 @@ class Slug_Sync {
 		}
 
 		self::save_run( $run );
+		self::prune_runs( $run_id );
+
 		return $run;
 	}
 
@@ -425,6 +491,7 @@ class Slug_Sync {
 		);
 
 		if ( self::add_option_once( self::LOCK_OPT, $lock ) ) {
+			self::release_lock_on_shutdown( $token );
 			return $token;
 		}
 
@@ -436,11 +503,33 @@ class Slug_Sync {
 			self::delete_option_if( self::LOCK_OPT, $current );
 
 			if ( self::add_option_once( self::LOCK_OPT, $lock ) ) {
+				self::release_lock_on_shutdown( $token );
 				return $token;
 			}
 		}
 
 		return '';
+	}
+
+	/**
+	 * Drop the lock if the request dies before it is released normally.
+	 *
+	 * rollback() walks an entire changes report in one request, so on a large
+	 * catalogue it can exceed max_execution_time. Shutdown functions still run
+	 * when that happens. Without one the abandoned lock stays fresh for the
+	 * whole of LOCK_TTL, and the retry that would have finished the job -- undo
+	 * is idempotent, so a retry resumes cleanly -- is refused for fifteen
+	 * minutes. release_lock() only deletes a row this request still owns, so
+	 * running it a second time on the normal path is a no-op.
+	 *
+	 * @param string $token Lock token.
+	 */
+	private static function release_lock_on_shutdown( $token ) {
+		register_shutdown_function(
+			static function () use ( $token ) {
+				self::release_lock( $token );
+			}
+		);
 	}
 
 	/**
@@ -870,7 +959,8 @@ class Slug_Sync {
 			$indexable = $wpdb->prefix . 'yoast_indexable';
 
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-			$found = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $indexable ) );
+			// Underscores are LIKE wildcards, and the prefix is full of them.
+			$found = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $indexable ) ) );
 			$table = ( $found === $indexable ) ? $indexable : '';
 		}
 
@@ -1087,6 +1177,8 @@ class Slug_Sync {
 			}
 			.slug-sync-example { background: #f6f7f7; border-radius: 3px; display: inline-block; margin-top: 5px; padding: 3px 7px; }
 			.slug-sync-apply-note { background: #fcf0f1; border-left: 4px solid #d63638; margin: 16px 0; padding: 10px 12px; }
+			.slug-sync-hierarchy-note { background: #fcf9e8; border-left: 4px solid #dba617; margin: 14px 0 0; padding: 10px 12px; }
+			.slug-sync-hierarchy-note p { margin: 6px 0 0; }
 			.slug-sync-safety { background: #f0f6fc; border-left: 4px solid #72aee6; margin: 16px 0; padding: 12px 16px; }
 			.slug-sync-safety h3 { margin: 0 0 6px; }
 			.slug-sync-safety ul { margin-bottom: 0; }
@@ -1182,12 +1274,6 @@ class Slug_Sync {
 	}
 
 	/**
-	 * Resume and cancel controls for an unfinished run.
-	 *
-	 * @param array<string,mixed> $run  Run record.
-	 * @param bool                $auto Submit the resume form automatically.
-	 */
-	/**
 	 * Render a progress bar for a run.
 	 *
 	 * @param int  $done    Items scanned so far.
@@ -1223,6 +1309,12 @@ class Slug_Sync {
 		<?php
 	}
 
+	/**
+	 * Resume and cancel controls for an unfinished run.
+	 *
+	 * @param array<string,mixed> $run  Run record.
+	 * @param bool                $auto Submit the resume form automatically.
+	 */
 	private static function run_controls( $run, $auto = false ) {
 		$run_id  = sanitize_key( $run['id'] );
 		$form_id = $auto ? ' id="slug-sync-next"' : '';
@@ -1455,6 +1547,13 @@ class Slug_Sync {
 			'apply_write'    => __( 'This choice controls how each slug is saved during Apply.', 'slug-sync' ),
 			'confirm_apply'  => __( 'Apply will begin changing slugs immediately. Have you reviewed a preview and taken a database backup?', 'slug-sync' ),
 		);
+
+		// Drives the note below, and is read again by the script at the end.
+		$hierarchical = array();
+
+		foreach ( array_keys( $types ) as $type_name ) {
+			$hierarchical[ $type_name ] = is_post_type_hierarchical( $type_name );
+		}
 		?>
 		<div class="slug-sync-intro">
 			<p><strong><?php esc_html_e( 'Make URL slugs match content titles—safely and in batches.', 'slug-sync' ); ?></strong></p>
@@ -1482,6 +1581,11 @@ class Slug_Sync {
 						</option>
 					<?php endforeach; ?>
 				</select>
+				<div class="slug-sync-hierarchy-note" id="slug-sync-hierarchy-note" <?php echo is_post_type_hierarchical( $default ) ? '' : 'hidden'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- fixed attribute string. ?>>
+					<strong><?php esc_html_e( 'This content type nests inside a parent, so plan redirects yourself.', 'slug-sync' ); ?></strong>
+					<p><?php esc_html_e( 'WordPress only redirects an old URL by itself for content that does not nest, such as posts and products. It does not do so for pages, whatever tool changes the slug, so import the redirect report into a redirect plugin after applying.', 'slug-sync' ); ?></p>
+					<p><?php esc_html_e( 'A nested URL also contains its parents\' slugs. Renaming a parent therefore changes the URL of everything beneath it, and those child URLs are not in the reports, which list only items whose own slug changed. Check what sits under anything you rename.', 'slug-sync' ); ?></p>
+				</div>
 			</section>
 
 			<section class="slug-sync-card" aria-labelledby="slug-sync-action-heading">
@@ -1587,6 +1691,9 @@ class Slug_Sync {
 			var button = document.getElementById('slug-sync-start-button');
 			var writeHelp = document.getElementById('slug-sync-write-help');
 			var applyNote = document.getElementById('slug-sync-apply-note');
+			var hierarchical = <?php echo wp_json_encode( $hierarchical, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- JSON encoded for JavaScript. ?>;
+			var typeSelect = document.getElementById('slug-sync-post-type');
+			var hierarchyNote = document.getElementById('slug-sync-hierarchy-note');
 			function applying(){
 				var selected = form.querySelector('input[name="mode"]:checked');
 				return selected && selected.value === 'apply';
@@ -1596,9 +1703,12 @@ class Slug_Sync {
 				button.textContent = isApply ? text.apply_button : text.preview_button;
 				writeHelp.textContent = isApply ? text.apply_write : text.preview_write;
 				applyNote.hidden = !isApply;
+				if (typeSelect && hierarchyNote) {
+					hierarchyNote.hidden = !hierarchical[typeSelect.value];
+				}
 			}
 			form.addEventListener('change', function(event){
-				if (event.target.name === 'mode') { update(); }
+				if (event.target.name === 'mode' || event.target.name === 'post_type') { update(); }
 			});
 			form.addEventListener('submit', function(event){
 				if (applying() && !window.confirm(text.confirm_apply)) { event.preventDefault(); }
@@ -1932,6 +2042,12 @@ class Slug_Sync {
 					'</p></div>';
 			}
 
+			if ( is_post_type_hierarchical( $post_type ) ) {
+				echo '<div class="notice notice-warning"><p>' .
+					esc_html__( 'This content type nests inside a parent. WordPress does not redirect its old URLs on its own, so import the redirect report into a redirect plugin. Anything sitting beneath an item whose slug changed also has a new URL, and those are not listed in the reports.', 'slug-sync' ) .
+					'</p></div>';
+			}
+
 			self::upsell_card( $run );
 
 			printf(
@@ -1999,9 +2115,15 @@ class Slug_Sync {
 		}
 
 		echo '</ul><p class="description">' .
-			esc_html__( 'Slug Sync builds each slug from the title exactly as WordPress would. Slug Sync Pro adds rules that rewrite the title first, so codes and filler words never reach the URL and non-Latin titles are transliterated rather than percent-encoded.', 'slug-sync' ) .
+			esc_html__( 'Slug Sync builds each slug from the title exactly as WordPress would. Slug Sync Pro, a separate add-on still in development, adds rules that rewrite the title first, so codes and filler words never reach the URL and non-Latin titles are transliterated rather than percent-encoded.', 'slug-sync' ) .
 			'</p><p><a class="button" href="' . esc_url( 'https://slugsync.com/#pricing' ) . '" target="_blank" rel="noopener noreferrer">' .
-			esc_html__( 'Slug Sync Pro — $4.99, every site you own', 'slug-sync' ) .
+			esc_html(
+				sprintf(
+					/* translators: %s: Pro launch price, for example $4.99. */
+					__( 'Slug Sync Pro — coming soon, %s at launch', 'slug-sync' ),
+					self::PRO_PRICE
+				)
+			) .
 			'</a></p></div>';
 	}
 

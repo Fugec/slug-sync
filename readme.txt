@@ -27,11 +27,13 @@ Previews are collision accurate. If two posts share a title, one of them has to 
 
 WordPress records a post's previous slug and quietly 301s the old URL to the new one. A direct database write would skip that, so the plugin writes the old-slug record itself. Your existing links keep resolving whether or not you use a redirect plugin.
 
+That built-in redirect covers content that does not nest inside a parent: posts, products and most custom post types. WordPress does not record old slugs for pages, whatever tool changes them, so pages need the redirect report below. See the FAQ before running this on pages.
+
 On top of that, every applied change is written to a second CSV of relative source and target pairs, ready to import into a redirect plugin as permanent redirects. It has no header row, because some importers treat a header as a live redirect, and it covers published posts only, because draft permalinks are query strings rather than real URLs.
 
 **Quiet writes**
 
-By default slugs go straight to the posts table, skipping `save_post`. On a store with thousands of products that avoids firing webhooks and integration syncs once per product, and leaves `post_modified` untouched, so your entire catalogue does not get a fresh sitemap lastmod on the same day. A normal update that fires all hooks is available if something in your stack needs it. Yoast indexables are cleared for changed posts either way, so canonicals do not go stale.
+By default slugs go straight to the posts table, skipping `save_post`. On a store with thousands of products that avoids firing webhooks and integration syncs once per product, and leaves `post_modified` untouched, so your entire catalogue does not get a fresh sitemap lastmod on the same day. A normal update that fires all hooks is available if something in your stack needs it. Yoast indexables are cleared for changed posts on the quiet path, so canonicals do not go stale; a standard update leaves that to Yoast's own save hooks.
 
 **Undo changes**
 
@@ -45,7 +47,7 @@ Batch progress is stored by WordPress rather than only in the browser. If a tab 
 
 * Works on any public post type, not just WooCommerce products.
 * Batched with keyset pagination, so nothing is skipped if someone publishes while a run is in progress, and long runs do not time out.
-* Keeps separate reports and undo controls for each run.
+* Keeps separate reports and undo controls for each run, pruning the oldest once fifty runs have accumulated so old reports do not pile up in uploads.
 * Resumes interrupted runs and prevents overlapping runs.
 * Slugs are capped at a word boundary before they can overflow the database column.
 * Reports are written to a directory with a random name, so your content is not enumerable.
@@ -55,7 +57,7 @@ Batch progress is stored by WordPress rather than only in the browser. If a tab 
 
 **About Slug Sync Pro**
 
-Slug Sync is complete on its own and has no limits. Slug Sync Pro is a separate add-on, sold at slugsync.com, that rewrites the title before the slug is built: it strips product codes and SKUs, drops filler words, and transliterates non-Latin titles instead of letting them be percent-encoded. It is not required for anything described above.
+Slug Sync is complete on its own and has no limits. Slug Sync Pro is a separate add-on, still in development at slugsync.com, that rewrites the title before the slug is built: it strips product codes and SKUs, drops filler words, and transliterates non-Latin titles instead of letting them be percent-encoded. It is not required for anything described above.
 
 == Installation ==
 
@@ -67,11 +69,17 @@ Slug Sync is complete on its own and has no limits. Slug Sync Pro is a separate 
 
 = Will this break my URLs? =
 
-Old URLs keep redirecting, because the plugin records each previous slug the way WordPress does. The exported redirect map is there as a second layer, and for anything you would rather handle in a dedicated redirect plugin. Purge your page cache and CDN after a run, and resubmit your sitemap.
+For posts, products and other content that does not nest inside a parent, old URLs keep redirecting, because the plugin records each previous slug the way WordPress does. The exported redirect map is there as a second layer, and for anything you would rather handle in a dedicated redirect plugin. Pages are the exception and have their own answer below. Purge your page cache and CDN after a run; sitemaps need no resubmission, since Google retired its ping endpoint in 2023.
 
 = What happens to two posts with the same title? =
 
 The lower post ID keeps the clean slug and the other takes a numeric suffix, which is what WordPress does normally. Both are flagged in the note column of the report, so you can rename them properly if you would rather not have a suffix.
+
+= Can I run this on pages? =
+
+Yes, but read this first, because pages behave differently from posts and products. WordPress only records a previous slug for content that does not nest inside a parent, so it will not redirect an old page URL by itself. Import the redirect report into a redirect plugin instead.
+
+There is a second consequence. A page's URL contains its parents' slugs, so renaming a parent also changes the URL of every page beneath it. Those child URLs are not in the reports, which list only the items whose own slug changed, and for the same reason a preview of a child shows the parent's current slug rather than its new one. Check what sits under anything you rename. Posts, products and other non-nesting types are unaffected by either point, and the plugin says all of this on screen when you select a nesting type.
 
 = Does it touch product variations? =
 
@@ -101,7 +109,7 @@ It processes in batches and continues automatically, and there is an option to s
 * Collision-accurate previews that track slug claims across the whole run.
 * Old URLs keep redirecting, plus an exportable redirect map for published posts.
 * Quiet writes that skip `save_post` hooks, or a full update that fires them.
-* Persistent run history with per-run change and redirect reports, and per-run undo.
+* Persistent run history with per-run change and redirect reports, and per-run undo, capped at fifty runs.
 * Resume and cancel controls for interrupted runs, with an atomic lock preventing overlapping runs.
 * Preview reports how many titles contain product codes, filler words or non-Latin script.
 * The `slug_sync_source_title` filter lets add-on plugins rewrite a title before its slug is generated.

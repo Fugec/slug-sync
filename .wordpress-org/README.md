@@ -17,7 +17,11 @@ rather than inside it:
 | `banner-1544x500.png` | Listing header, high resolution. |
 | `icon-128x128.gif` | Plugin icon, standard resolution. Animated. |
 | `icon-256x256.gif` | Plugin icon, high resolution. Animated. |
+| `screenshot-1.png` … `screenshot-5.png` | Listing screenshots. |
 
-Screenshots are still missing. They go here too, named `screenshot-1.png`,
-`screenshot-2.png` and `screenshot-3.png`, and must match the order of the
-captions under `== Screenshots ==` in `readme.txt`.
+Only one raster format is supplied per icon size, which is what the handbook
+expects; a PNG fallback is required only alongside `icon.svg`, and there is no
+SVG here. Both icons are well under the 1 MB per-icon limit.
+
+The screenshot order must keep matching the captions under `== Screenshots ==`
+in `readme.txt`.
