@@ -958,8 +958,8 @@ class Slug_Sync {
 		if ( null === $table ) {
 			$indexable = $wpdb->prefix . 'yoast_indexable';
 
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			// Underscores are LIKE wildcards, and the prefix is full of them.
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$found = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $indexable ) ) );
 			$table = ( $found === $indexable ) ? $indexable : '';
 		}
