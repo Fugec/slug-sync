@@ -1292,40 +1292,60 @@ class Slug_Sync {
 				align-items: center;
 				background: #fff;
 				border: 1px solid var(--ss-line);
-				border-radius: var(--ss-r-sm);
+				border-radius: var(--ss-r);
 				color: var(--ss-navy);
 				cursor: pointer;
 				display: flex;
 				flex-wrap: wrap;
-				font-size: 13px;
-				font-weight: 600;
-				gap: 10px;
+				font-size: 15px;
+				font-weight: 700;
+				gap: 12px;
 				list-style: none;
-				padding: 12px 16px;
+				padding: 20px 24px;
 				transition: border-color .25s, box-shadow .25s var(--ss-ease);
 			}
 			.slug-sync-advanced > summary::-webkit-details-marker { display: none; }
 			.slug-sync-advanced > summary::before {
-				color: var(--ss-accent);
-				content: "\25B8";
-				font-size: 12px;
-				transition: transform .2s var(--ss-ease);
+				align-items: center;
+				background: var(--ss-accent-soft);
+				border-radius: 50%;
+				color: var(--ss-accent-ink);
+				content: "+";
+				display: inline-flex;
+				flex: none;
+				font-size: 16px;
+				font-weight: 700;
+				height: 26px;
+				justify-content: center;
+				line-height: 1;
+				width: 26px;
 			}
-			.slug-sync-advanced[open] > summary::before { transform: rotate(90deg); }
+			.slug-sync-advanced[open] > summary::before { content: "\2212"; }
 			.slug-sync-advanced > summary:hover { border-color: var(--ss-line-2); box-shadow: 0 14px 32px -20px rgba(11, 15, 67, .3); }
 			.slug-sync-advanced-hint {
-				color: var(--ss-dim);
-				font-size: 12px;
+				color: var(--ss-muted);
+				font-size: 13px;
 				font-weight: 400;
 				margin-left: auto;
 			}
-			.slug-sync-advanced-body {
-				border: 1px solid var(--ss-line);
-				border-radius: var(--ss-r-sm);
-				border-top: 0;
-				margin-top: -4px;
-				padding: 16px 18px 4px;
-			}
+			.slug-sync-advanced[open] > summary { margin-bottom: 0; }
+			.slug-sync-advanced > .slug-sync-card { margin-top: 10px; }
+
+			/* One size for explanatory text everywhere on the screen. wp-admin
+			   ships several and they were all showing up at once. */
+			.slug-sync-admin .description,
+			.slug-sync-admin .slug-sync-choice-help,
+			.slug-sync-admin p { font-size: 13px; }
+			.slug-sync-admin .slug-sync-card > p,
+			.slug-sync-admin .slug-sync-intro > p { font-size: 14px; }
+			.slug-sync-admin .form-table th { font-size: 14px; padding-top: 18px; width: 180px; }
+			.slug-sync-admin .form-table td { padding-top: 14px; padding-bottom: 14px; }
+			.slug-sync-admin .form-table td .description { margin: 6px 0 0; }
+
+			/* Labelled field inside a cell, so a control and its instructions
+			   stay together instead of the help drifting to the next field. */
+			.slug-sync-field { margin: 14px 0 0; }
+			.slug-sync-field label { display: block; margin-bottom: 5px; }
 
 			/* A save button is a button. It was rendering as flat text next to
 			   controls that all look like buttons. */
@@ -1341,6 +1361,19 @@ class Slug_Sync {
 			}
 
 			/* Worked example under a heading. */
+			/* A block inside a disclosure panel. Not a card -- a card inside a
+			   card reads as a second layer of boxes rather than a section. */
+			.slug-sync-sub { padding: 4px 0 18px; }
+			.slug-sync-sub + .slug-sync-sub { border-top: 1px solid var(--ss-line); padding-top: 18px; }
+			.slug-sync-sub > h2 {
+				color: var(--ss-navy);
+				font-size: 15px;
+				font-weight: 700;
+				margin: 0 0 4px;
+				padding: 0;
+			}
+			.slug-sync-sub > h2 + p { margin-top: 0; }
+
 			.slug-sync-eg {
 				background: var(--ss-bg-2);
 				border-radius: var(--ss-r-sm);
@@ -1762,10 +1795,10 @@ class Slug_Sync {
 			</section>
 
 			<details class="slug-sync-advanced">
-			<summary><?php esc_html_e( 'More run options', 'slug-sync' ); ?></summary>
-			<div class="slug-sync-advanced-body">
+			<summary><?php esc_html_e( 'How it runs', 'slug-sync' ); ?><span class="slug-sync-advanced-hint"><?php esc_html_e( 'Sensible defaults already chosen — most people never need this', 'slug-sync' ); ?></span></summary>
+			<div class="slug-sync-card">
 
-			<section class="slug-sync-card" aria-labelledby="slug-sync-write-heading">
+			<section class="slug-sync-sub" aria-labelledby="slug-sync-write-heading">
 				<h2 id="slug-sync-write-heading"><?php esc_html_e( 'How each change is saved', 'slug-sync' ); ?></h2>
 				<p id="slug-sync-write-help"><?php echo esc_html( $interface_text['preview_write'] ); ?></p>
 				<div class="slug-sync-choices">
@@ -1786,7 +1819,7 @@ class Slug_Sync {
 				</div>
 			</section>
 
-			<section class="slug-sync-card" aria-labelledby="slug-sync-scope-heading">
+			<section class="slug-sync-sub" aria-labelledby="slug-sync-scope-heading">
 				<h2 id="slug-sync-scope-heading"><?php esc_html_e( 'What is included', 'slug-sync' ); ?></h2>
 				<p><?php esc_html_e( 'By default, only published items whose slug clearly differs from the title are included. Leave these unchecked unless you need the broader scope described.', 'slug-sync' ); ?></p>
 				<div class="slug-sync-choices">
