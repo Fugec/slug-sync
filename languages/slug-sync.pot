@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-08-22T17:16:10+00:00\n"
+"POT-Creation-Date: 2026-08-22T17:25:55+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.7.1\n"
 "X-Domain: slug-sync\n"
@@ -19,7 +19,7 @@ msgstr ""
 #: slug-sync.php:153
 #: slug-sync.php:160
 #: slug-sync.php:161
-#: slug-sync.php:1411
+#: slug-sync.php:1445
 msgid "Slug Sync"
 msgstr ""
 
@@ -32,7 +32,7 @@ msgid "Armin Kapetanovic"
 msgstr ""
 
 #: slug-sync.php:120
-#: slug-sync.php:1403
+#: slug-sync.php:1437
 msgid "You do not have permission to access this page."
 msgstr ""
 
@@ -52,566 +52,566 @@ msgstr ""
 msgid "Database write failed."
 msgstr ""
 
-#: slug-sync.php:1447
+#: slug-sync.php:1481
 msgid "In progress"
 msgstr ""
 
-#: slug-sync.php:1448
+#: slug-sync.php:1482
 msgid "Paused"
 msgstr ""
 
-#: slug-sync.php:1449
+#: slug-sync.php:1483
 msgid "Completed"
 msgstr ""
 
-#: slug-sync.php:1450
+#: slug-sync.php:1484
 msgid "Stopped"
 msgstr ""
 
-#: slug-sync.php:1451
+#: slug-sync.php:1485
 msgid "Undone"
 msgstr ""
 
-#: slug-sync.php:1454
+#: slug-sync.php:1488
 msgid "Unknown"
 msgstr ""
 
-#: slug-sync.php:1473
+#: slug-sync.php:1507
 msgid "Run progress"
 msgstr ""
 
 #. translators: 1: items scanned, 2: total items.
-#: slug-sync.php:1482
+#: slug-sync.php:1516
 msgid "%1$s of %2$s scanned"
 msgstr ""
 
-#: slug-sync.php:1508
+#: slug-sync.php:1542
 msgid "Continue"
 msgstr ""
 
-#: slug-sync.php:1508
+#: slug-sync.php:1542
 msgid "Resume run"
 msgstr ""
 
-#: slug-sync.php:1510
+#: slug-sync.php:1544
 msgid "Stop this run? Work already completed will not be reversed, and the partial reports will be kept."
 msgstr ""
 
-#: slug-sync.php:1513
+#: slug-sync.php:1547
 msgid "Stop run"
 msgstr ""
 
-#: slug-sync.php:1537
+#: slug-sync.php:1571
 msgid "Previous runs"
 msgstr ""
 
-#: slug-sync.php:1538
+#: slug-sync.php:1572
 msgid "Each row is one preview or apply run. Reports can be downloaded at any time; only applied changes can be undone."
 msgstr ""
 
-#: slug-sync.php:1540
+#: slug-sync.php:1574
 msgid "Started"
 msgstr ""
 
-#: slug-sync.php:1541
+#: slug-sync.php:1575
 msgid "What ran"
 msgstr ""
 
-#: slug-sync.php:1542
+#: slug-sync.php:1576
 msgid "Status"
 msgstr ""
 
-#: slug-sync.php:1543
+#: slug-sync.php:1577
 msgid "Progress"
 msgstr ""
 
-#: slug-sync.php:1544
+#: slug-sync.php:1578
 msgid "Reports"
 msgstr ""
 
-#: slug-sync.php:1545
+#: slug-sync.php:1579
 msgid "Actions"
 msgstr ""
 
-#: slug-sync.php:1566
+#: slug-sync.php:1600
 msgid "standard WordPress update"
 msgstr ""
 
-#: slug-sync.php:1566
+#: slug-sync.php:1600
 msgid "quiet update"
 msgstr ""
 
-#: slug-sync.php:1572
+#: slug-sync.php:1606
 msgid "Apply"
 msgstr ""
 
-#: slug-sync.php:1572
-#: slug-sync.php:1704
+#: slug-sync.php:1606
+#: slug-sync.php:1738
 msgid "Preview"
 msgstr ""
 
-#: slug-sync.php:1573
+#: slug-sync.php:1607
 msgid "Technical ID"
 msgstr ""
 
 #. translators: 1: scanned posts, 2: total posts.
-#: slug-sync.php:1580
+#: slug-sync.php:1614
 msgid "%1$d / %2$d scanned"
 msgstr ""
 
 #. translators: 1: changed posts, 2: errors.
-#: slug-sync.php:1589
+#: slug-sync.php:1623
 msgid "%1$d changes, %2$d errors"
 msgstr ""
 
-#: slug-sync.php:1598
-#: slug-sync.php:1660
+#: slug-sync.php:1632
+#: slug-sync.php:1694
 msgid "Download changes"
 msgstr ""
 
-#: slug-sync.php:1601
-#: slug-sync.php:1667
+#: slug-sync.php:1635
+#: slug-sync.php:1701
 msgid "Download redirects"
 msgstr ""
 
-#: slug-sync.php:1608
+#: slug-sync.php:1642
 msgid "Undo the slug changes from this run? Items edited since the run will be left unchanged."
 msgstr ""
 
-#: slug-sync.php:1611
+#: slug-sync.php:1645
 msgid "Undo changes"
 msgstr ""
 
-#: slug-sync.php:1622
+#: slug-sync.php:1656
 msgid "Changes report:"
 msgstr ""
 
-#: slug-sync.php:1623
+#: slug-sync.php:1657
 msgid "shows each old and proposed/new URL and supports Undo."
 msgstr ""
 
-#: slug-sync.php:1624
+#: slug-sync.php:1658
 msgid "Redirect report:"
 msgstr ""
 
-#: slug-sync.php:1625
+#: slug-sync.php:1659
 msgid "contains source and destination pairs for published items, ready for a redirect tool."
 msgstr ""
 
-#: slug-sync.php:1632
+#: slug-sync.php:1666
 msgid "Show the latest 20 runs"
 msgstr ""
 
-#: slug-sync.php:1638
+#: slug-sync.php:1672
 msgid "Show all run history"
 msgstr ""
 
-#: slug-sync.php:1655
+#: slug-sync.php:1689
 msgid "Reports from an earlier version"
 msgstr ""
 
-#: slug-sync.php:1672
+#: slug-sync.php:1706
 msgid "These files were created before the Previous runs screen was introduced."
 msgstr ""
 
-#: slug-sync.php:1676
+#: slug-sync.php:1710
 msgid "Undo the slug changes recorded in this earlier report?"
 msgstr ""
 
-#: slug-sync.php:1678
+#: slug-sync.php:1712
 msgid "Undo changes from this report"
 msgstr ""
 
-#: slug-sync.php:1698
+#: slug-sync.php:1732
 msgid "Finish your current run"
 msgstr ""
 
 #. translators: 1: run type, 2: content type, 3: scanned count, 4: total count.
-#: slug-sync.php:1703
+#: slug-sync.php:1737
 msgid "An unfinished %1$s for %2$s has scanned %3$d of %4$d items. Resume continues from the last completed batch; it does not start over."
 msgstr ""
 
-#: slug-sync.php:1704
+#: slug-sync.php:1738
 msgid "Apply run"
 msgstr ""
 
-#: slug-sync.php:1713
+#: slug-sync.php:1747
 msgid "Stopping keeps changes already made and preserves the partial reports. It does not undo completed batches."
 msgstr ""
 
-#: slug-sync.php:1725
+#: slug-sync.php:1759
 msgid "Create preview"
 msgstr ""
 
-#: slug-sync.php:1726
+#: slug-sync.php:1760
 msgid "Apply slug changes"
 msgstr ""
 
-#: slug-sync.php:1727
+#: slug-sync.php:1761
 msgid "This choice has no effect during a preview because nothing is saved."
 msgstr ""
 
-#: slug-sync.php:1728
+#: slug-sync.php:1762
 msgid "This choice controls how each slug is saved during Apply."
 msgstr ""
 
-#: slug-sync.php:1729
+#: slug-sync.php:1763
 msgid "Apply will begin changing slugs immediately. Have you reviewed a preview and taken a database backup?"
 msgstr ""
 
-#: slug-sync.php:1740
+#: slug-sync.php:1774
 msgid "Make URL slugs match content titles—safely and in batches."
 msgstr ""
 
-#: slug-sync.php:1742
+#: slug-sync.php:1776
 msgid "A slug is the last part of a URL. For example, a title of “Blue Cotton Shirt” normally uses the slug “blue-cotton-shirt”. Slug Sync finds items that do not follow that pattern."
 msgstr ""
 
-#: slug-sync.php:1745
+#: slug-sync.php:1779
 msgid "1. Preview"
 msgstr ""
 
-#: slug-sync.php:1745
+#: slug-sync.php:1779
 msgid "See every proposed old and new URL without saving changes."
 msgstr ""
 
-#: slug-sync.php:1746
+#: slug-sync.php:1780
 msgid "2. Review"
 msgstr ""
 
-#: slug-sync.php:1746
+#: slug-sync.php:1780
 msgid "Download the changes report and check duplicate-title notes."
 msgstr ""
 
-#: slug-sync.php:1747
+#: slug-sync.php:1781
 msgid "3. Apply"
 msgstr ""
 
-#: slug-sync.php:1747
+#: slug-sync.php:1781
 msgid "Run again with Apply selected when the preview looks correct."
 msgstr ""
 
-#: slug-sync.php:1755
+#: slug-sync.php:1789
 msgid "What should I tidy up?"
 msgstr ""
 
-#: slug-sync.php:1756
+#: slug-sync.php:1790
 msgid "Only the selected content type is processed. Attachments and product variations are never included."
 msgstr ""
 
-#: slug-sync.php:1757
+#: slug-sync.php:1791
 msgid "Content type"
 msgstr ""
 
-#: slug-sync.php:1766
+#: slug-sync.php:1800
 msgid "This content type nests inside a parent, so plan redirects yourself."
 msgstr ""
 
-#: slug-sync.php:1767
+#: slug-sync.php:1801
 msgid "WordPress only redirects an old URL by itself for content that does not nest, such as posts and products. It does not do so for pages, whatever tool changes the slug, so import the redirect report into a redirect plugin after applying."
 msgstr ""
 
-#: slug-sync.php:1768
+#: slug-sync.php:1802
 msgid "A nested URL also contains its parents' slugs. Renaming a parent therefore changes the URL of everything beneath it, and those child URLs are not in the reports, which list only items whose own slug changed. Check what sits under anything you rename."
 msgstr ""
 
-#: slug-sync.php:1773
+#: slug-sync.php:1807
 msgid "Preview first, or apply now?"
 msgstr ""
 
-#: slug-sync.php:1774
+#: slug-sync.php:1808
 msgid "Start with a preview. Apply uses the same matching rules but saves the proposed slugs."
 msgstr ""
 
-#: slug-sync.php:1779
+#: slug-sync.php:1813
 msgid "Create a preview"
 msgstr ""
 
-#: slug-sync.php:1779
+#: slug-sync.php:1813
 msgid "Recommended first"
 msgstr ""
 
-#: slug-sync.php:1780
+#: slug-sync.php:1814
 msgid "Reads the selected content and creates reports. No slugs, URLs, posts, or products are changed."
 msgstr ""
 
-#: slug-sync.php:1786
+#: slug-sync.php:1820
 msgid "Apply the slug changes"
 msgstr ""
 
-#: slug-sync.php:1787
+#: slug-sync.php:1821
 msgid "Changes matching slugs in batches and records reports for downloads and undo. Use this after reviewing a preview."
 msgstr ""
 
-#: slug-sync.php:1792
+#: slug-sync.php:1826
 msgid "Apply will change live URLs."
 msgstr ""
 
-#: slug-sync.php:1793
+#: slug-sync.php:1827
 msgid "Take a database backup first. Existing indexed URLs are recorded for redirection, and a redirect CSV is created as a second layer."
 msgstr ""
 
-#: slug-sync.php:1798
+#: slug-sync.php:1832
 msgid "How it runs"
 msgstr ""
 
-#: slug-sync.php:1798
+#: slug-sync.php:1832
 msgid "Sensible defaults already chosen — most people never need this"
 msgstr ""
 
-#: slug-sync.php:1802
+#: slug-sync.php:1836
 msgid "How each change is saved"
 msgstr ""
 
-#: slug-sync.php:1808
-#: slug-sync.php:2211
+#: slug-sync.php:1842
+#: slug-sync.php:2245
 msgid "Quiet update"
 msgstr ""
 
-#: slug-sync.php:1808
+#: slug-sync.php:1842
 msgid "Recommended"
 msgstr ""
 
-#: slug-sync.php:1809
+#: slug-sync.php:1843
 msgid "Best for most sites and large stores. Changes only the URL slug, keeps the existing modified date, and avoids triggering save automations, webhooks, or integration syncs for every item. Redirect protections and reports are still created."
 msgstr ""
 
-#: slug-sync.php:1815
-#: slug-sync.php:2211
+#: slug-sync.php:1849
+#: slug-sync.php:2245
 msgid "Standard WordPress update"
 msgstr ""
 
-#: slug-sync.php:1816
+#: slug-sync.php:1850
 msgid "Saves every item through WordPress normally. This updates its modified date and runs plugins, webhooks, and automations connected to saving. Choose this only when another integration must react to each slug change; it can be much slower."
 msgstr ""
 
-#: slug-sync.php:1823
+#: slug-sync.php:1857
 msgid "What is included"
 msgstr ""
 
-#: slug-sync.php:1824
+#: slug-sync.php:1858
 msgid "By default, only published items whose slug clearly differs from the title are included. Leave these unchecked unless you need the broader scope described."
 msgstr ""
 
-#: slug-sync.php:1829
+#: slug-sync.php:1863
 msgid "Also include unpublished items"
 msgstr ""
 
-#: slug-sync.php:1830
+#: slug-sync.php:1864
 msgid "Includes drafts, pending-review items, and private items. Leave off if you only want to change URLs that visitors can currently access."
 msgstr ""
 
-#: slug-sync.php:1836
+#: slug-sync.php:1870
 msgid "Recheck numbered slugs"
 msgstr ""
 
-#: slug-sync.php:1837
+#: slug-sync.php:1871
 msgid "Includes slugs that already match the title except for a number. These are skipped by default because the number often marks a duplicate title. WordPress may add a number again when it is needed to keep the URL unique."
 msgstr ""
 
-#: slug-sync.php:1838
+#: slug-sync.php:1872
 msgid "Example: blue-cotton-shirt-2"
 msgstr ""
 
 #. translators: %d: number of items in one batch.
-#: slug-sync.php:1847
+#: slug-sync.php:1881
 msgid "Pause after the first %d items"
 msgstr ""
 
-#: slug-sync.php:1849
+#: slug-sync.php:1883
 msgid "Useful for first Apply"
 msgstr ""
 
-#: slug-sync.php:1851
+#: slug-sync.php:1885
 msgid "Processes one batch, then pauses so you can inspect the partial report. Resume continues with the next item. Stopping does not undo the first batch."
 msgstr ""
 
-#: slug-sync.php:1861
+#: slug-sync.php:1895
 msgid "Before you apply"
 msgstr ""
 
-#: slug-sync.php:1863
+#: slug-sync.php:1897
 msgid "Take a current database backup."
 msgstr ""
 
-#: slug-sync.php:1864
+#: slug-sync.php:1898
 msgid "Run and review a complete preview first."
 msgstr ""
 
-#: slug-sync.php:1865
+#: slug-sync.php:1899
 msgid "After Apply finishes, purge page/CDN caches and test several old URLs."
 msgstr ""
 
-#: slug-sync.php:1871
+#: slug-sync.php:1905
 msgid "Large sites continue automatically in small batches."
 msgstr ""
 
-#: slug-sync.php:1926
+#: slug-sync.php:1960
 msgid "A run could not be started. Resume or stop the active run before trying again."
 msgstr ""
 
-#: slug-sync.php:1934
+#: slug-sync.php:1968
 msgid "This run has already finished."
 msgstr ""
 
-#: slug-sync.php:1942
+#: slug-sync.php:1976
 msgid "Another run became active. Reload this page and try again."
 msgstr ""
 
-#: slug-sync.php:1946
+#: slug-sync.php:1980
 msgid "Another run is active. Finish or stop it first."
 msgstr ""
 
-#: slug-sync.php:1954
+#: slug-sync.php:1988
 msgid "Another batch is still processing. Wait a moment, then use Resume."
 msgstr ""
 
-#: slug-sync.php:1964
+#: slug-sync.php:1998
 msgid "This run is no longer available to resume."
 msgstr ""
 
-#: slug-sync.php:1999
+#: slug-sync.php:2033
 msgid "This run cannot resume because one of its report files is missing. Stop it before starting another run."
 msgstr ""
 
-#: slug-sync.php:2061
+#: slug-sync.php:2095
 msgid "The report files could not be opened. Check that the uploads directory is writable, then resume."
 msgstr ""
 
-#: slug-sync.php:2131
+#: slug-sync.php:2165
 msgid "duplicate title, suffixed"
 msgstr ""
 
 #. translators: 1: post ID, 2: error message.
-#: slug-sync.php:2138
-#: slug-sync.php:2457
+#: slug-sync.php:2172
+#: slug-sync.php:2491
 msgid "#%1$d failed: %2$s"
 msgstr ""
 
-#: slug-sync.php:2205
+#: slug-sync.php:2239
 msgid "Applying slug changes"
 msgstr ""
 
-#: slug-sync.php:2205
+#: slug-sync.php:2239
 msgid "Building the preview"
 msgstr ""
 
-#: slug-sync.php:2210
+#: slug-sync.php:2244
 msgid "Saving method:"
 msgstr ""
 
-#: slug-sync.php:2213
+#: slug-sync.php:2247
 msgid "This is a preview. No slugs or URLs are being changed."
 msgstr ""
 
-#: slug-sync.php:2217
+#: slug-sync.php:2251
 msgid "View items found in this batch"
 msgstr ""
 
-#: slug-sync.php:2227
+#: slug-sync.php:2261
 msgid "All selected items are finished. Download the reports below, purge any page/CDN cache, and test several old URLs."
 msgstr ""
 
-#: slug-sync.php:2231
+#: slug-sync.php:2265
 msgid "Preview complete. Download the changes report below and review the old URL, new URL, and note columns. When it looks correct, go back and choose Apply."
 msgstr ""
 
-#: slug-sync.php:2237
+#: slug-sync.php:2271
 msgid "This content type nests inside a parent. WordPress does not redirect its old URLs on its own, so import the redirect report into a redirect plugin. Anything sitting beneath an item whose slug changed also has a new URL, and those are not listed in the reports."
 msgstr ""
 
-#: slug-sync.php:2246
+#: slug-sync.php:2280
 msgid "Back"
 msgstr ""
 
-#: slug-sync.php:2254
+#: slug-sync.php:2288
 msgid "The first batch is complete and the run is paused. Download the partial report below, then resume to continue or stop to keep only the completed work."
 msgstr ""
 
-#: slug-sync.php:2260
+#: slug-sync.php:2294
 msgid "The next batch will start automatically."
 msgstr ""
 
 #. translators: %d: number of titles.
-#: slug-sync.php:2290
+#: slug-sync.php:2324
 msgid "%d title contains a product code or SKU."
 msgid_plural "%d titles contain a product code or SKU."
 msgstr[0] ""
 msgstr[1] ""
 
 #. translators: %d: number of titles.
-#: slug-sync.php:2294
+#: slug-sync.php:2328
 msgid "%d title is written in a non-Latin script."
 msgid_plural "%d titles are written in a non-Latin script."
 msgstr[0] ""
 msgstr[1] ""
 
 #. translators: %d: number of titles.
-#: slug-sync.php:2298
+#: slug-sync.php:2332
 msgid "%d title contains common filler words."
 msgid_plural "%d titles contain common filler words."
 msgstr[0] ""
 msgstr[1] ""
 
-#: slug-sync.php:2301
+#: slug-sync.php:2335
 msgid "About these titles"
 msgstr ""
 
-#: slug-sync.php:2308
+#: slug-sync.php:2342
 msgid "Slug Sync builds each slug from the title exactly as WordPress would. Slug Sync Pro, a separate add-on still in development, adds rules that rewrite the title first, so codes and filler words never reach the URL and non-Latin titles are transliterated rather than percent-encoded. It also syncs category and tag slugs, which this plugin leaves alone."
 msgstr ""
 
 #. translators: %s: Pro launch price, for example $4.99.
-#: slug-sync.php:2313
+#: slug-sync.php:2347
 msgid "Slug Sync Pro — coming soon, %s at launch"
 msgstr ""
 
-#: slug-sync.php:2329
+#: slug-sync.php:2363
 msgid "This run is not available to stop."
 msgstr ""
 
-#: slug-sync.php:2337
+#: slug-sync.php:2371
 msgid "A batch is still processing. Wait for it to finish before stopping the run."
 msgstr ""
 
-#: slug-sync.php:2355
+#: slug-sync.php:2389
 msgid "Run stopped. Work already completed was kept, and the partial reports remain available under Previous runs."
 msgstr ""
 
-#: slug-sync.php:2372
+#: slug-sync.php:2406
 msgid "The selected apply run is not available."
 msgstr ""
 
-#: slug-sync.php:2377
+#: slug-sync.php:2411
 msgid "Stop the active run before undoing its changes."
 msgstr ""
 
-#: slug-sync.php:2382
+#: slug-sync.php:2416
 msgid "This run has already been undone."
 msgstr ""
 
-#: slug-sync.php:2387
+#: slug-sync.php:2421
 msgid "Finish or stop the active run before undoing another run."
 msgstr ""
 
-#: slug-sync.php:2395
+#: slug-sync.php:2429
 msgid "No changes report was found for this undo."
 msgstr ""
 
-#: slug-sync.php:2403
+#: slug-sync.php:2437
 msgid "Another Slug Sync operation is still running. Try again shortly."
 msgstr ""
 
-#: slug-sync.php:2412
+#: slug-sync.php:2446
 msgid "The report could not be read."
 msgstr ""
 
 #. translators: 1: post ID, 2: current slug, 3: expected slug.
-#: slug-sync.php:2446
+#: slug-sync.php:2480
 msgid "#%1$d skipped, slug is now \"%2$s\" rather than \"%3$s\""
 msgstr ""
 
 #. translators: 1: number restored, 2: number skipped.
-#: slug-sync.php:2477
+#: slug-sync.php:2511
 msgid "Undo finished: restored %1$d slugs and skipped %2$d items that were missing or had changed since the run."
 msgstr ""

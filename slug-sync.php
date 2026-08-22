@@ -1236,9 +1236,7 @@ class Slug_Sync {
 			.slug-sync-choice:has(input:checked) { background: var(--ss-accent-soft); border-color: var(--ss-accent); box-shadow: inset 3px 0 0 var(--ss-accent); }
 			.slug-sync-choice input { margin-top: 3px; }
 			.slug-sync-choice-title { display: block; font-size: 14px; margin-bottom: 4px; }
-			.slug-sync-choice-help { color: var(--ss-muted); display: block; line-height: 1.5; max-width: 90ch; }
-			.slug-sync-intro > p,
-			.slug-sync-card > p { max-width: 90ch; }
+			.slug-sync-choice-help { color: var(--ss-muted); display: block; line-height: 1.5; }
 			.slug-sync-badge {
 				background: #e7f5ea;
 				border-radius: 999px;
@@ -1251,10 +1249,10 @@ class Slug_Sync {
 				vertical-align: 1px;
 			}
 			.slug-sync-example { background: var(--ss-bg-2); border-radius: var(--ss-r-sm); display: inline-block; margin-top: 5px; padding: 3px 7px; }
-			.slug-sync-apply-note { background: #fcf0f1; border-left: 4px solid #d63638; border-radius: var(--ss-r-sm); margin: 16px 0; padding: 12px 14px; }
-			.slug-sync-hierarchy-note { background: #fcf9e8; border-left: 4px solid #dba617; border-radius: var(--ss-r-sm); margin: 14px 0 0; padding: 12px 14px; }
+			.slug-sync-apply-note { background: #fcf0f1; border-left: 4px solid #d63638; border-radius: var(--ss-r-sm); padding: 12px 14px; }
+			.slug-sync-hierarchy-note { background: #fcf9e8; border-left: 4px solid #dba617; border-radius: var(--ss-r-sm); padding: 12px 14px; }
 			.slug-sync-hierarchy-note p { margin: 6px 0 0; }
-			.slug-sync-safety { background: var(--ss-bg-2); border: 1px solid var(--ss-line); border-left: 4px solid var(--ss-navy); border-radius: var(--ss-r-sm); margin: 16px 0; padding: 16px 18px; }
+			.slug-sync-safety { background: var(--ss-bg-2); border: 1px solid var(--ss-line); border-left: 4px solid var(--ss-navy); border-radius: var(--ss-r-sm); padding: 16px 18px; }
 			.slug-sync-safety h3 { margin: 0 0 6px; }
 			.slug-sync-safety ul { margin-bottom: 0; }
 			.slug-sync-actions { align-items: center; display: flex; gap: 12px; margin: 18px 0 24px; }
@@ -1330,6 +1328,42 @@ class Slug_Sync {
 			}
 			.slug-sync-advanced[open] > summary { margin-bottom: 0; }
 			.slug-sync-advanced > .slug-sync-card { margin-top: 10px; }
+
+			/* ---- Vertical rhythm ----------------------------------------
+			   Every block on the screen was setting its own margins, so the gap
+			   above a note and the gap below it were rarely the same number.
+			   One scale, applied once: 8px inside a pair, 16px between blocks,
+			   24px before a new heading, and nothing hanging off the bottom of
+			   a card. */
+			.slug-sync-card > :first-child,
+			.slug-sync-intro > :first-child,
+			.slug-sync-sub > :first-child { margin-top: 0; }
+			.slug-sync-card > :last-child,
+			.slug-sync-intro > :last-child,
+			.slug-sync-sub > :last-child { margin-bottom: 0; }
+
+			.slug-sync-card > h2,
+			.slug-sync-sub > h2 { margin: 0 0 8px; }
+			.slug-sync-card > h3 { margin: 24px 0 8px; }
+			.slug-sync-card > p,
+			.slug-sync-sub > p { margin: 0 0 16px; }
+
+			.slug-sync-card > .slug-sync-safety,
+			.slug-sync-card > .slug-sync-apply-note,
+			.slug-sync-card > .slug-sync-hierarchy-note,
+			.slug-sync-card > .slug-sync-taxonomy-note,
+			.slug-sync-card > .slug-sync-taxonomy-scope,
+			.slug-sync-card > .slug-sync-eg,
+			.slug-sync-card > .slug-sync-examples,
+			.slug-sync-card > .slug-sync-choices,
+			.slug-sync-card > .form-table,
+			.slug-sync-card > .slug-sync-field { margin: 16px 0; }
+
+			.slug-sync-card > .form-table:first-of-type { margin-top: 8px; }
+			.slug-sync-admin .form-table > tbody > tr:first-child > th,
+			.slug-sync-admin .form-table > tbody > tr:first-child > td { padding-top: 0; }
+			.slug-sync-admin .form-table > tbody > tr:last-child > th,
+			.slug-sync-admin .form-table > tbody > tr:last-child > td { padding-bottom: 0; }
 
 			/* One size for explanatory text everywhere on the screen. wp-admin
 			   ships several and they were all showing up at once. */
