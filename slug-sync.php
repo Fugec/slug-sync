@@ -1086,7 +1086,16 @@ class Slug_Sync {
 	private static function render_styles() {
 		?>
 		<style>
-			.slug-sync-admin { max-width: 1100px; }
+			.slug-sync-admin { max-width: none; }
+			.slug-sync-brand {
+				align-items: center;
+				display: flex;
+				flex-wrap: wrap;
+				gap: 12px;
+				margin: 0 0 4px;
+				padding: 9px 0 4px;
+			}
+			.slug-sync-brand img { height: 34px; width: auto; }
 			.slug-sync-intro,
 			.slug-sync-card,
 			.slug-sync-active {
@@ -1177,7 +1186,9 @@ class Slug_Sync {
 			.slug-sync-choice:has(input:checked) { background: #fff4f0; border-color: #f53e02; box-shadow: inset 3px 0 0 #f53e02; }
 			.slug-sync-choice input { margin-top: 3px; }
 			.slug-sync-choice-title { display: block; font-size: 14px; margin-bottom: 4px; }
-			.slug-sync-choice-help { color: #50575e; display: block; line-height: 1.5; }
+			.slug-sync-choice-help { color: #50575e; display: block; line-height: 1.5; max-width: 90ch; }
+			.slug-sync-intro > p,
+			.slug-sync-card > p { max-width: 90ch; }
 			.slug-sync-badge {
 				background: #e7f5ea;
 				border-radius: 10px;
@@ -1226,6 +1237,7 @@ class Slug_Sync {
 			.slug-sync-batch-log summary { cursor: pointer; font-weight: 600; }
 			.slug-sync-batch-log pre { background: #f6f7f7; border: 1px solid #dcdcde; max-height: 340px; overflow: auto; padding: 12px; }
 			@media (max-width: 782px) {
+				.slug-sync-brand img { height: 28px; }
 				.slug-sync-steps { grid-template-columns: 1fr; }
 				.slug-sync-select { max-width: 100%; min-width: 0; width: 100%; }
 				.slug-sync-card { padding: 16px; }
@@ -1242,7 +1254,13 @@ class Slug_Sync {
 			wp_die( esc_html__( 'You do not have permission to access this page.', 'slug-sync' ) );
 		}
 
-		echo '<div class="wrap slug-sync-admin"><h1>' . esc_html__( 'Slug Sync', 'slug-sync' ) . '</h1>';
+		echo '<div class="wrap slug-sync-admin">';
+
+		printf(
+			'<h1 class="slug-sync-brand"><img src="%s" alt="%s" width="400" height="130"></h1>',
+			esc_url( plugins_url( 'assets/logo.png', __FILE__ ) ),
+			esc_attr__( 'Slug Sync', 'slug-sync' )
+		);
 		self::render_styles();
 
 		$ran_batch = false;
