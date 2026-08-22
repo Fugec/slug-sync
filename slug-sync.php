@@ -22,8 +22,22 @@ if ( ! defined( 'ABSPATH' ) ) {
  * A second copy of the plugin -- a manual install left in place beside the
  * directory version, say -- would otherwise fatal on the duplicate class
  * declaration, before WordPress could report which plugin caused it.
+ *
+ * The test is the constant, not class_exists( 'Slug_Sync' ). PHP early-binds a
+ * top-level class that has no parent, so Slug_Sync exists the moment this file
+ * is compiled -- before line one of it runs. Testing for the class therefore
+ * returned true on this file's own first load, and every load after: the
+ * constant below was never defined, the signals class below it was never
+ * required, and Slug_Sync::run() fatalled on its first row with
+ * "Class Slug_Sync_Signals not found". The guard silently disabled the plugin
+ * it was written to protect.
+ *
+ * The constant has neither problem. It is defined by whichever copy loads
+ * first, and a second copy sees it and returns before its own class
+ * declaration is reached -- which is also the point at which PHP would
+ * otherwise refuse the duplicate.
  */
-if ( class_exists( 'Slug_Sync' ) ) {
+if ( defined( 'SLUG_SYNC_VERSION' ) ) {
 	return;
 }
 
