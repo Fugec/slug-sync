@@ -66,7 +66,7 @@ class Slug_Sync {
 	const MAX_RUNS = 50;
 
 	/** Advertised Pro price, kept out of the translatable sentence around it. */
-	const PRO_PRICE = '$4.99';
+	const PRO_PRICE = '$79.99';
 
 	/**
 	 * In-request slug claims for a preview run, keyed by run ID then by slug.
@@ -2343,7 +2343,7 @@ class Slug_Sync {
 			'</p><p><a class="button" href="' . esc_url( 'https://slugsync.com/#pricing' ) . '" target="_blank" rel="noopener noreferrer">' .
 			esc_html(
 				sprintf(
-					/* translators: %s: Pro launch price, for example $4.99. */
+					/* translators: %s: Pro price, for example $79.99. */
 					__( 'Slug Sync Pro — coming soon, %s at launch', 'slug-sync' ),
 					self::PRO_PRICE
 				)

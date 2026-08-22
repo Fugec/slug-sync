@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-08-22T17:25:55+00:00\n"
+"POT-Creation-Date: 2026-08-22T17:39:28+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.7.1\n"
 "X-Domain: slug-sync\n"
@@ -561,7 +561,7 @@ msgstr ""
 msgid "Slug Sync builds each slug from the title exactly as WordPress would. Slug Sync Pro, a separate add-on still in development, adds rules that rewrite the title first, so codes and filler words never reach the URL and non-Latin titles are transliterated rather than percent-encoded. It also syncs category and tag slugs, which this plugin leaves alone."
 msgstr ""
 
-#. translators: %s: Pro launch price, for example $4.99.
+#. translators: %s: Pro price, for example $79.99.
 #: slug-sync.php:2347
 msgid "Slug Sync Pro — coming soon, %s at launch"
 msgstr ""
