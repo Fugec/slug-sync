@@ -1100,12 +1100,18 @@ class Slug_Sync {
 			.slug-sync-card,
 			.slug-sync-active {
 				background: #fff;
-				border: 1px solid #dcdcde;
-				border-radius: 6px;
+				border: 1px solid rgba(11, 15, 67, .10);
+				border-radius: 14px;
 				box-sizing: border-box;
-				margin: 16px 0;
-				padding: 20px 22px;
+				margin: 18px 0;
+				padding: 24px;
+				transition: border-color .25s, box-shadow .25s;
 			}
+			/* The site lifts its cards on hover. These hold forms rather than
+			   links, so they take the border and shadow and not the movement --
+			   a control that shifts under the pointer is worse than a static
+			   one, however much it matches. */
+			.slug-sync-card:hover { border-color: rgba(11, 15, 67, .20); box-shadow: 0 14px 32px -20px rgba(11, 15, 67, .3); }
 			.slug-sync-intro { border-left: 4px solid #f53e02; }
 			.slug-sync-intro > p:first-child { font-size: 15px; margin-top: 0; }
 			.slug-sync-steps {
@@ -1114,10 +1120,28 @@ class Slug_Sync {
 				grid-template-columns: repeat(3, minmax(0, 1fr));
 				margin: 18px 0 0;
 			}
-			.slug-sync-step { background: #f6f7f7; border-radius: 4px; padding: 12px 14px; }
+			.slug-sync-step { background: rgba(11, 15, 67, .035); border-radius: 10px; padding: 14px 16px; }
 			.slug-sync-step strong { display: block; margin-bottom: 4px; }
 			.slug-sync-card > h2,
-			.slug-sync-active > h2 { color: #0b0f43; margin: 0 0 6px; }
+			.slug-sync-active > h2 {
+				color: #0b0f43;
+				font-size: 1.05rem;
+				font-weight: 700;
+				letter-spacing: -.01em;
+				line-height: 1.2;
+				margin: 0 0 8px;
+				padding: 0;
+			}
+			/* The site's section label: small, orange, widely tracked. */
+			.slug-sync-eyebrow {
+				color: #dc3802;
+				display: block;
+				font-size: .75rem;
+				font-weight: 700;
+				letter-spacing: .14em;
+				margin: 0 0 10px;
+				text-transform: uppercase;
+			}
 			.slug-sync-card > p { color: #50575e; margin-top: 0; }
 			.slug-sync-progress { margin: 14px 0 4px; }
 			.slug-sync-progress-track {
@@ -1158,7 +1182,7 @@ class Slug_Sync {
 			.slug-sync-progress-meta strong { color: #0b0f43; }
 			.slug-sync-number {
 				align-items: center;
-				background: #0b0f43;
+				background: #f53e02;
 				border-radius: 50%;
 				color: #fff;
 				display: inline-flex;
@@ -1173,8 +1197,8 @@ class Slug_Sync {
 			.slug-sync-choices { display: grid; gap: 10px; margin-top: 14px; }
 			.slug-sync-choice {
 				align-items: flex-start;
-				border: 1px solid #c3c4c7;
-				border-radius: 5px;
+				border: 1px solid rgba(11, 15, 67, .16);
+				border-radius: 10px;
 				cursor: pointer;
 				display: grid;
 				gap: 10px;
@@ -1210,22 +1234,27 @@ class Slug_Sync {
 			.slug-sync-actions { align-items: center; display: flex; gap: 12px; margin: 18px 0 24px; }
 			.slug-sync-actions .button-primary { min-height: 36px; padding: 4px 18px; }
 			.slug-sync-admin .button-primary {
-				background: #0b0f43;
-				border-color: #0b0f43;
+				background: #f53e02;
+				border-color: #f53e02;
+				border-radius: 8px;
+				box-shadow: 0 8px 22px -10px rgba(245, 62, 2, .7);
 				color: #fff;
 				text-shadow: none;
 			}
 			.slug-sync-admin .button-primary:hover {
-				background: #161c63;
-				border-color: #161c63;
+				background: #f53e02;
+				border-color: #f53e02;
+				box-shadow: 0 12px 30px -10px rgba(245, 62, 2, .85);
 				color: #fff;
+				filter: brightness(.92);
 			}
 			.slug-sync-admin .button-primary:focus {
-				background: #161c63;
-				border-color: #161c63;
-				box-shadow: 0 0 0 2px #fff, 0 0 0 4px #f53e02;
+				background: #f53e02;
+				border-color: #f53e02;
+				box-shadow: 0 0 0 2px #fff, 0 0 0 4px #0b0f43;
 				color: #fff;
 			}
+			.slug-sync-admin .button { border-radius: 8px; }
 			.slug-sync-controls { align-items: center; display: flex; flex-wrap: wrap; gap: 8px; }
 			.slug-sync-controls form,
 			.slug-sync-history form { margin: 0; }
@@ -1603,7 +1632,7 @@ class Slug_Sync {
 			<?php wp_nonce_field( 'slug_sync' ); ?>
 
 			<section class="slug-sync-card" aria-labelledby="slug-sync-content-heading">
-				<h2 id="slug-sync-content-heading"><span class="slug-sync-number">1</span><?php esc_html_e( 'Choose the content to check', 'slug-sync' ); ?></h2>
+				<span class="slug-sync-eyebrow"><?php esc_html_e( 'Step one', 'slug-sync' ); ?></span><h2 id="slug-sync-content-heading"><span class="slug-sync-number">1</span><?php esc_html_e( 'Choose the content to check', 'slug-sync' ); ?></h2>
 				<p><?php esc_html_e( 'Only the selected content type is processed. Attachments and product variations are never included.', 'slug-sync' ); ?></p>
 				<label for="slug-sync-post-type"><strong><?php esc_html_e( 'Content type', 'slug-sync' ); ?></strong></label><br>
 				<select name="post_type" id="slug-sync-post-type" class="slug-sync-select">
@@ -1621,7 +1650,7 @@ class Slug_Sync {
 			</section>
 
 			<section class="slug-sync-card" aria-labelledby="slug-sync-action-heading">
-				<h2 id="slug-sync-action-heading"><span class="slug-sync-number">2</span><?php esc_html_e( 'Choose what to do', 'slug-sync' ); ?></h2>
+				<span class="slug-sync-eyebrow"><?php esc_html_e( 'Step two', 'slug-sync' ); ?></span><h2 id="slug-sync-action-heading"><span class="slug-sync-number">2</span><?php esc_html_e( 'Choose what to do', 'slug-sync' ); ?></h2>
 				<p><?php esc_html_e( 'Start with a preview. Apply uses the same matching rules but saves the proposed slugs.', 'slug-sync' ); ?></p>
 				<div class="slug-sync-choices">
 					<label class="slug-sync-choice">
@@ -1646,7 +1675,7 @@ class Slug_Sync {
 			</section>
 
 			<section class="slug-sync-card" aria-labelledby="slug-sync-write-heading">
-				<h2 id="slug-sync-write-heading"><span class="slug-sync-number">3</span><?php esc_html_e( 'Choose how Apply saves each slug', 'slug-sync' ); ?></h2>
+				<span class="slug-sync-eyebrow"><?php esc_html_e( 'Step three', 'slug-sync' ); ?></span><h2 id="slug-sync-write-heading"><span class="slug-sync-number">3</span><?php esc_html_e( 'Choose how Apply saves each slug', 'slug-sync' ); ?></h2>
 				<p id="slug-sync-write-help"><?php echo esc_html( $interface_text['preview_write'] ); ?></p>
 				<div class="slug-sync-choices">
 					<label class="slug-sync-choice">
@@ -1667,7 +1696,7 @@ class Slug_Sync {
 			</section>
 
 			<section class="slug-sync-card" aria-labelledby="slug-sync-scope-heading">
-				<h2 id="slug-sync-scope-heading"><span class="slug-sync-number">4</span><?php esc_html_e( 'Choose what is included', 'slug-sync' ); ?></h2>
+				<span class="slug-sync-eyebrow"><?php esc_html_e( 'Step four', 'slug-sync' ); ?></span><h2 id="slug-sync-scope-heading"><span class="slug-sync-number">4</span><?php esc_html_e( 'Choose what is included', 'slug-sync' ); ?></h2>
 				<p><?php esc_html_e( 'By default, only published items whose slug clearly differs from the title are included. Leave these unchecked unless you need the broader scope described.', 'slug-sync' ); ?></p>
 				<div class="slug-sync-choices">
 					<label class="slug-sync-choice">
