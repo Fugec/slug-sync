@@ -1289,16 +1289,65 @@ class Slug_Sync {
 			.slug-sync-table-wrap { overflow-x: auto; }
 			.slug-sync-advanced { margin: 0 0 18px; }
 			.slug-sync-advanced > summary {
-				color: var(--ss-muted);
+				align-items: center;
+				background: #fff;
+				border: 1px solid var(--ss-line);
+				border-radius: var(--ss-r-sm);
+				color: var(--ss-navy);
 				cursor: pointer;
+				display: flex;
+				flex-wrap: wrap;
 				font-size: 13px;
-				padding: 6px 0;
+				font-weight: 600;
+				gap: 10px;
+				list-style: none;
+				padding: 12px 16px;
+				transition: border-color .25s, box-shadow .25s var(--ss-ease);
+			}
+			.slug-sync-advanced > summary::-webkit-details-marker { display: none; }
+			.slug-sync-advanced > summary::before {
+				color: var(--ss-accent);
+				content: "\25B8";
+				font-size: 12px;
+				transition: transform .2s var(--ss-ease);
+			}
+			.slug-sync-advanced[open] > summary::before { transform: rotate(90deg); }
+			.slug-sync-advanced > summary:hover { border-color: var(--ss-line-2); box-shadow: 0 14px 32px -20px rgba(11, 15, 67, .3); }
+			.slug-sync-advanced-hint {
+				color: var(--ss-dim);
+				font-size: 12px;
+				font-weight: 400;
+				margin-left: auto;
 			}
 			.slug-sync-advanced-body {
-				border-left: 3px solid var(--ss-line);
-				margin-top: 6px;
-				padding-left: 16px;
+				border: 1px solid var(--ss-line);
+				border-radius: var(--ss-r-sm);
+				border-top: 0;
+				margin-top: -4px;
+				padding: 16px 18px 4px;
 			}
+
+			/* A save button is a button. It was rendering as flat text next to
+			   controls that all look like buttons. */
+			.slug-sync-admin .button-primary.slug-sync-save {
+				background: var(--ss-navy);
+				border-color: var(--ss-navy);
+				box-shadow: none;
+			}
+			.slug-sync-admin .button-primary.slug-sync-save:hover {
+				background: var(--ss-navy);
+				border-color: var(--ss-navy);
+				filter: brightness(1.35);
+			}
+
+			/* Worked example under a heading. */
+			.slug-sync-eg {
+				background: var(--ss-bg-2);
+				border-radius: var(--ss-r-sm);
+				font-size: 13px;
+				padding: 12px 14px;
+			}
+			.slug-sync-eg code { background: #fff; }
 			.slug-sync-technical { margin-top: 6px; }
 			.slug-sync-technical summary { color: var(--ss-dim); cursor: pointer; font-size: 12px; }
 			.slug-sync-batch-log summary { cursor: pointer; font-weight: 600; }
