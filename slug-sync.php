@@ -1086,6 +1086,25 @@ class Slug_Sync {
 	private static function render_styles() {
 		?>
 		<style>
+			/* slugsync.com's tokens, copied from the site's own stylesheet so the
+			   plugin and the site are one product rather than two that share a
+			   logo. wp-admin's greys are deliberately not used: #dcdcde and
+			   #50575e are WordPress's, and mixing them with the brand palette is
+			   what made the screen read as a different piece of software. */
+			.slug-sync-admin {
+				--ss-navy: #0b0f43;
+				--ss-accent: #f53e02;
+				--ss-accent-ink: #dc3802;
+				--ss-accent-soft: rgba(245, 62, 2, .09);
+				--ss-bg-2: rgba(11, 15, 67, .035);
+				--ss-muted: rgba(11, 15, 67, .66);
+				--ss-dim: rgba(11, 15, 67, .48);
+				--ss-line: rgba(11, 15, 67, .10);
+				--ss-line-2: rgba(11, 15, 67, .20);
+				--ss-r: 14px;
+				--ss-r-sm: 10px;
+				--ss-ease: cubic-bezier(.22, 1, .36, 1);
+			}
 			.slug-sync-admin { max-width: none; }
 			.slug-sync-brand {
 				align-items: center;
@@ -1100,19 +1119,19 @@ class Slug_Sync {
 			.slug-sync-card,
 			.slug-sync-active {
 				background: #fff;
-				border: 1px solid rgba(11, 15, 67, .10);
-				border-radius: 14px;
+				border: 1px solid var(--ss-line);
+				border-radius: var(--ss-r);
 				box-sizing: border-box;
 				margin: 18px 0;
 				padding: 24px;
-				transition: border-color .25s, box-shadow .25s;
+				transition: border-color .25s, box-shadow .25s var(--ss-ease);
 			}
 			/* The site lifts its cards on hover. These hold forms rather than
 			   links, so they take the border and shadow and not the movement --
 			   a control that shifts under the pointer is worse than a static
 			   one, however much it matches. */
-			.slug-sync-card:hover { border-color: rgba(11, 15, 67, .20); box-shadow: 0 14px 32px -20px rgba(11, 15, 67, .3); }
-			.slug-sync-intro { border-left: 4px solid #f53e02; }
+			.slug-sync-card:hover { border-color: var(--ss-line-2); box-shadow: 0 14px 32px -20px rgba(11, 15, 67, .3); }
+			.slug-sync-intro { border-left: 4px solid var(--ss-accent); }
 			.slug-sync-intro > p:first-child { font-size: 15px; margin-top: 0; }
 			.slug-sync-steps {
 				display: grid;
@@ -1120,11 +1139,18 @@ class Slug_Sync {
 				grid-template-columns: repeat(3, minmax(0, 1fr));
 				margin: 18px 0 0;
 			}
-			.slug-sync-step { background: rgba(11, 15, 67, .035); border-radius: 10px; padding: 14px 16px; }
+			.slug-sync-step {
+				background: #fff;
+				border: 1px solid var(--ss-line);
+				border-radius: var(--ss-r);
+				padding: 22px 20px;
+				transition: border-color .25s, box-shadow .25s var(--ss-ease);
+			}
+			.slug-sync-step:hover { border-color: var(--ss-line-2); box-shadow: 0 14px 32px -20px rgba(11, 15, 67, .3); }
 			.slug-sync-step strong { display: block; margin-bottom: 4px; }
 			.slug-sync-card > h2,
 			.slug-sync-active > h2 {
-				color: #0b0f43;
+				color: var(--ss-navy);
 				font-size: 1.05rem;
 				font-weight: 700;
 				letter-spacing: -.01em;
@@ -1134,7 +1160,7 @@ class Slug_Sync {
 			}
 			/* The site's section label: small, orange, widely tracked. */
 			.slug-sync-eyebrow {
-				color: #dc3802;
+				color: var(--ss-accent-ink);
 				display: block;
 				font-size: .75rem;
 				font-weight: 700;
@@ -1142,18 +1168,18 @@ class Slug_Sync {
 				margin: 0 0 10px;
 				text-transform: uppercase;
 			}
-			.slug-sync-card > p { color: #50575e; margin-top: 0; }
+			.slug-sync-card > p { color: var(--ss-muted); margin-top: 0; }
 			.slug-sync-progress { margin: 14px 0 4px; }
 			.slug-sync-progress-track {
-				background: #f0f0f1;
+				background: var(--ss-bg-2);
 				border-radius: 9px;
-				box-shadow: inset 0 0 0 1px #dcdcde;
+				box-shadow: inset 0 0 0 1px var(--ss-line);
 				height: 18px;
 				overflow: hidden;
 				width: 100%;
 			}
 			.slug-sync-progress-fill {
-				background: #f53e02;
+				background: var(--ss-accent);
 				border-radius: 9px;
 				height: 100%;
 				transition: width .3s ease;
@@ -1172,17 +1198,17 @@ class Slug_Sync {
 				.slug-sync-progress-fill.is-working { animation: none; }
 			}
 			.slug-sync-progress-meta {
-				color: #50575e;
+				color: var(--ss-muted);
 				display: flex;
 				font-size: 13px;
 				gap: 12px;
 				justify-content: space-between;
 				margin-top: 6px;
 			}
-			.slug-sync-progress-meta strong { color: #0b0f43; }
+			.slug-sync-progress-meta strong { color: var(--ss-navy); }
 			.slug-sync-number {
 				align-items: center;
-				background: #f53e02;
+				background: var(--ss-accent);
 				border-radius: 50%;
 				color: #fff;
 				display: inline-flex;
@@ -1197,8 +1223,8 @@ class Slug_Sync {
 			.slug-sync-choices { display: grid; gap: 10px; margin-top: 14px; }
 			.slug-sync-choice {
 				align-items: flex-start;
-				border: 1px solid rgba(11, 15, 67, .16);
-				border-radius: 10px;
+				border: 1px solid var(--ss-line-2);
+				border-radius: var(--ss-r-sm);
 				cursor: pointer;
 				display: grid;
 				gap: 10px;
@@ -1206,16 +1232,16 @@ class Slug_Sync {
 				padding: 14px;
 			}
 			.slug-sync-choice:hover,
-			.slug-sync-choice:focus-within { border-color: #0b0f43; box-shadow: 0 0 0 1px #0b0f43; }
-			.slug-sync-choice:has(input:checked) { background: #fff4f0; border-color: #f53e02; box-shadow: inset 3px 0 0 #f53e02; }
+			.slug-sync-choice:focus-within { border-color: var(--ss-navy); box-shadow: 0 0 0 1px var(--ss-navy); }
+			.slug-sync-choice:has(input:checked) { background: var(--ss-accent-soft); border-color: var(--ss-accent); box-shadow: inset 3px 0 0 var(--ss-accent); }
 			.slug-sync-choice input { margin-top: 3px; }
 			.slug-sync-choice-title { display: block; font-size: 14px; margin-bottom: 4px; }
-			.slug-sync-choice-help { color: #50575e; display: block; line-height: 1.5; max-width: 90ch; }
+			.slug-sync-choice-help { color: var(--ss-muted); display: block; line-height: 1.5; max-width: 90ch; }
 			.slug-sync-intro > p,
 			.slug-sync-card > p { max-width: 90ch; }
 			.slug-sync-badge {
 				background: #e7f5ea;
-				border-radius: 10px;
+				border-radius: 999px;
 				color: #116329;
 				display: inline-block;
 				font-size: 11px;
@@ -1224,34 +1250,34 @@ class Slug_Sync {
 				padding: 2px 8px;
 				vertical-align: 1px;
 			}
-			.slug-sync-example { background: #f6f7f7; border-radius: 3px; display: inline-block; margin-top: 5px; padding: 3px 7px; }
-			.slug-sync-apply-note { background: #fcf0f1; border-left: 4px solid #d63638; margin: 16px 0; padding: 10px 12px; }
-			.slug-sync-hierarchy-note { background: #fcf9e8; border-left: 4px solid #dba617; margin: 14px 0 0; padding: 10px 12px; }
+			.slug-sync-example { background: var(--ss-bg-2); border-radius: var(--ss-r-sm); display: inline-block; margin-top: 5px; padding: 3px 7px; }
+			.slug-sync-apply-note { background: #fcf0f1; border-left: 4px solid #d63638; border-radius: var(--ss-r-sm); margin: 16px 0; padding: 12px 14px; }
+			.slug-sync-hierarchy-note { background: #fcf9e8; border-left: 4px solid #dba617; border-radius: var(--ss-r-sm); margin: 14px 0 0; padding: 12px 14px; }
 			.slug-sync-hierarchy-note p { margin: 6px 0 0; }
-			.slug-sync-safety { background: #f0f6fc; border-left: 4px solid #72aee6; margin: 16px 0; padding: 12px 16px; }
+			.slug-sync-safety { background: var(--ss-bg-2); border: 1px solid var(--ss-line); border-left: 4px solid var(--ss-navy); border-radius: var(--ss-r-sm); margin: 16px 0; padding: 16px 18px; }
 			.slug-sync-safety h3 { margin: 0 0 6px; }
 			.slug-sync-safety ul { margin-bottom: 0; }
 			.slug-sync-actions { align-items: center; display: flex; gap: 12px; margin: 18px 0 24px; }
 			.slug-sync-actions .button-primary { min-height: 36px; padding: 4px 18px; }
 			.slug-sync-admin .button-primary {
-				background: #f53e02;
-				border-color: #f53e02;
+				background: var(--ss-accent);
+				border-color: var(--ss-accent);
 				border-radius: 8px;
-				box-shadow: 0 8px 22px -10px rgba(245, 62, 2, .7);
+				box-shadow: 0 8px 22px -10px rgba(245, 62, 2, .75);
 				color: #fff;
 				text-shadow: none;
 			}
 			.slug-sync-admin .button-primary:hover {
-				background: #f53e02;
-				border-color: #f53e02;
+				background: var(--ss-accent);
+				border-color: var(--ss-accent);
 				box-shadow: 0 12px 30px -10px rgba(245, 62, 2, .85);
 				color: #fff;
 				filter: brightness(.92);
 			}
 			.slug-sync-admin .button-primary:focus {
-				background: #f53e02;
-				border-color: #f53e02;
-				box-shadow: 0 0 0 2px #fff, 0 0 0 4px #0b0f43;
+				background: var(--ss-accent);
+				border-color: var(--ss-accent);
+				box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--ss-navy);
 				color: #fff;
 			}
 			.slug-sync-admin .button { border-radius: 8px; }
@@ -1263,20 +1289,20 @@ class Slug_Sync {
 			.slug-sync-table-wrap { overflow-x: auto; }
 			.slug-sync-advanced { margin: 0 0 18px; }
 			.slug-sync-advanced > summary {
-				color: #50575e;
+				color: var(--ss-muted);
 				cursor: pointer;
 				font-size: 13px;
 				padding: 6px 0;
 			}
 			.slug-sync-advanced-body {
-				border-left: 3px solid rgba(11, 15, 67, .10);
+				border-left: 3px solid var(--ss-line);
 				margin-top: 6px;
 				padding-left: 16px;
 			}
 			.slug-sync-technical { margin-top: 6px; }
-			.slug-sync-technical summary { color: #646970; cursor: pointer; font-size: 12px; }
+			.slug-sync-technical summary { color: var(--ss-dim); cursor: pointer; font-size: 12px; }
 			.slug-sync-batch-log summary { cursor: pointer; font-weight: 600; }
-			.slug-sync-batch-log pre { background: #f6f7f7; border: 1px solid #dcdcde; max-height: 340px; overflow: auto; padding: 12px; }
+			.slug-sync-batch-log pre { background: var(--ss-bg-2); border: 1px solid var(--ss-line); max-height: 340px; overflow: auto; padding: 12px; }
 			@media (max-width: 782px) {
 				.slug-sync-brand img { height: 28px; }
 				.slug-sync-steps { grid-template-columns: 1fr; }
