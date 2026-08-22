@@ -57,7 +57,7 @@ Batch progress is stored by WordPress rather than only in the browser. If a tab 
 
 **About Slug Sync Pro**
 
-Slug Sync is complete on its own and has no limits. Slug Sync Pro is a separate add-on, still in development at slugsync.com, that rewrites the title before the slug is built: it strips product codes and SKUs, drops filler words, and transliterates non-Latin titles instead of letting them be percent-encoded. It is not required for anything described above.
+Slug Sync is complete on its own and has no limits. Slug Sync Pro is a separate add-on, still in development at slugsync.com. It rewrites the title before the slug is built — stripping product codes and SKUs, dropping filler words, and transliterating non-Latin titles instead of letting them be percent-encoded — and it syncs term slugs for categories, tags and product attributes, which this plugin does not touch at all. It is not required for anything described above, and nothing described above will ever move into it.
 
 == Installation ==
 
