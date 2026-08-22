@@ -1261,6 +1261,18 @@ class Slug_Sync {
 			.slug-sync-history td { vertical-align: top; }
 			.slug-sync-history .button { margin: 0 4px 4px 0; }
 			.slug-sync-table-wrap { overflow-x: auto; }
+			.slug-sync-advanced { margin: 0 0 18px; }
+			.slug-sync-advanced > summary {
+				color: #50575e;
+				cursor: pointer;
+				font-size: 13px;
+				padding: 6px 0;
+			}
+			.slug-sync-advanced-body {
+				border-left: 3px solid rgba(11, 15, 67, .10);
+				margin-top: 6px;
+				padding-left: 16px;
+			}
 			.slug-sync-technical { margin-top: 6px; }
 			.slug-sync-technical summary { color: #646970; cursor: pointer; font-size: 12px; }
 			.slug-sync-batch-log summary { cursor: pointer; font-weight: 600; }
@@ -1632,7 +1644,7 @@ class Slug_Sync {
 			<?php wp_nonce_field( 'slug_sync' ); ?>
 
 			<section class="slug-sync-card" aria-labelledby="slug-sync-content-heading">
-				<span class="slug-sync-eyebrow"><?php esc_html_e( 'Step one', 'slug-sync' ); ?></span><h2 id="slug-sync-content-heading"><span class="slug-sync-number">1</span><?php esc_html_e( 'Choose the content to check', 'slug-sync' ); ?></h2>
+				<h2 id="slug-sync-content-heading"><span class="slug-sync-number">1</span><?php esc_html_e( 'What should I tidy up?', 'slug-sync' ); ?></h2>
 				<p><?php esc_html_e( 'Only the selected content type is processed. Attachments and product variations are never included.', 'slug-sync' ); ?></p>
 				<label for="slug-sync-post-type"><strong><?php esc_html_e( 'Content type', 'slug-sync' ); ?></strong></label><br>
 				<select name="post_type" id="slug-sync-post-type" class="slug-sync-select">
@@ -1650,7 +1662,7 @@ class Slug_Sync {
 			</section>
 
 			<section class="slug-sync-card" aria-labelledby="slug-sync-action-heading">
-				<span class="slug-sync-eyebrow"><?php esc_html_e( 'Step two', 'slug-sync' ); ?></span><h2 id="slug-sync-action-heading"><span class="slug-sync-number">2</span><?php esc_html_e( 'Choose what to do', 'slug-sync' ); ?></h2>
+				<h2 id="slug-sync-action-heading"><span class="slug-sync-number">2</span><?php esc_html_e( 'Preview first, or apply now?', 'slug-sync' ); ?></h2>
 				<p><?php esc_html_e( 'Start with a preview. Apply uses the same matching rules but saves the proposed slugs.', 'slug-sync' ); ?></p>
 				<div class="slug-sync-choices">
 					<label class="slug-sync-choice">
@@ -1674,8 +1686,12 @@ class Slug_Sync {
 				</div>
 			</section>
 
+			<details class="slug-sync-advanced">
+			<summary><?php esc_html_e( 'More run options', 'slug-sync' ); ?></summary>
+			<div class="slug-sync-advanced-body">
+
 			<section class="slug-sync-card" aria-labelledby="slug-sync-write-heading">
-				<span class="slug-sync-eyebrow"><?php esc_html_e( 'Step three', 'slug-sync' ); ?></span><h2 id="slug-sync-write-heading"><span class="slug-sync-number">3</span><?php esc_html_e( 'Choose how Apply saves each slug', 'slug-sync' ); ?></h2>
+				<h2 id="slug-sync-write-heading"><?php esc_html_e( 'How each change is saved', 'slug-sync' ); ?></h2>
 				<p id="slug-sync-write-help"><?php echo esc_html( $interface_text['preview_write'] ); ?></p>
 				<div class="slug-sync-choices">
 					<label class="slug-sync-choice">
@@ -1696,7 +1712,7 @@ class Slug_Sync {
 			</section>
 
 			<section class="slug-sync-card" aria-labelledby="slug-sync-scope-heading">
-				<span class="slug-sync-eyebrow"><?php esc_html_e( 'Step four', 'slug-sync' ); ?></span><h2 id="slug-sync-scope-heading"><span class="slug-sync-number">4</span><?php esc_html_e( 'Choose what is included', 'slug-sync' ); ?></h2>
+				<h2 id="slug-sync-scope-heading"><?php esc_html_e( 'What is included', 'slug-sync' ); ?></h2>
 				<p><?php esc_html_e( 'By default, only published items whose slug clearly differs from the title are included. Leave these unchecked unless you need the broader scope described.', 'slug-sync' ); ?></p>
 				<div class="slug-sync-choices">
 					<label class="slug-sync-choice">
@@ -1730,8 +1746,11 @@ class Slug_Sync {
 				</div>
 			</section>
 
-			<div class="slug-sync-safety">
-				<h3><?php esc_html_e( 'Before using Apply', 'slug-sync' ); ?></h3>
+			</div>
+			</details>
+
+			<div class="slug-sync-safety" id="slug-sync-safety" hidden>
+				<h3><?php esc_html_e( 'Before you apply', 'slug-sync' ); ?></h3>
 				<ul>
 					<li><?php esc_html_e( 'Take a current database backup.', 'slug-sync' ); ?></li>
 					<li><?php esc_html_e( 'Run and review a complete preview first.', 'slug-sync' ); ?></li>
@@ -1752,6 +1771,7 @@ class Slug_Sync {
 			var button = document.getElementById('slug-sync-start-button');
 			var writeHelp = document.getElementById('slug-sync-write-help');
 			var applyNote = document.getElementById('slug-sync-apply-note');
+			var safety = document.getElementById('slug-sync-safety');
 			var hierarchical = <?php echo wp_json_encode( $hierarchical, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- JSON encoded for JavaScript. ?>;
 			var typeSelect = document.getElementById('slug-sync-post-type');
 			var hierarchyNote = document.getElementById('slug-sync-hierarchy-note');
@@ -1764,6 +1784,7 @@ class Slug_Sync {
 				button.textContent = isApply ? text.apply_button : text.preview_button;
 				writeHelp.textContent = isApply ? text.apply_write : text.preview_write;
 				applyNote.hidden = !isApply;
+				if (safety) { safety.hidden = !isApply; }
 				if (typeSelect && hierarchyNote) {
 					hierarchyNote.hidden = !hierarchical[typeSelect.value];
 				}
