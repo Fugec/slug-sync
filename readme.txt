@@ -48,6 +48,7 @@ Batch progress is stored by WordPress rather than only in the browser. Before Ap
 * Works on any public post type, not just WooCommerce products.
 * Batched with keyset pagination, avoiding the duplicate/skip drift caused by SQL OFFSET when items are added or removed during a run.
 * Keeps separate reports and undo controls for each run, pruning the oldest once fifty runs have accumulated so old reports do not pile up in uploads.
+* Shows a rolling live feed of the thirty most recent matches during a run, while the downloadable CSV retains the complete result.
 * Resumes interrupted runs and prevents overlapping runs.
 * Slugs are capped at a word boundary before they can overflow the database column.
 * Reports are written to a directory with a random name, so your content is not enumerable.
@@ -57,7 +58,7 @@ Batch progress is stored by WordPress rather than only in the browser. Before Ap
 
 **About Slug Sync Pro**
 
-Slug Sync is complete on its own and has no limits. Slug Sync Pro is a separate add-on, still in development at slugsync.com. It rewrites the title before the slug is built — stripping product codes and SKUs, dropping filler words, and transliterating non-Latin titles instead of letting them be percent-encoded — and it syncs term slugs for categories, tags and product attributes, which this plugin does not touch at all. It is not required for anything described above, and nothing described above will ever move into it.
+Slug Sync is complete on its own and has no limits. Slug Sync Pro is a separate add-on, built and in final release checks at slugsync.com. It can remove unwanted name text, transliterate non-Latin words and build product URLs from WooCommerce fields; add chosen categories, tags and reusable attribute values from product names without changing those names; and safely update category, tag and product-attribute URLs with direct redirects, cache clearing and a seven-day 404 watch. It is not required for anything described above, and nothing described above will ever move into it.
 
 == Installation ==
 
@@ -96,10 +97,12 @@ It processes in batches and continues automatically, and there is an option to s
 == Screenshots ==
 
 1. The guided setup screen: content type, Preview or Apply, how each slug is saved, and what is included, each with a plain-language explanation.
-2. A run paused after its first batch, with resume and stop controls above the full run history.
-3. A completed preview listing every old slug beside the slug it would become, with per-run report downloads and Undo below.
-4. The redirect report: relative source and target pairs with no header row, ready to import into a redirect plugin.
-5. The changes report: every item with its title, old and new slug, old and new URL, and a note column flagging duplicate titles.
+2. A completed product preview carried back above Step 1, with the contextual Pro workflow carousel, setup form and run history still visible below.
+3. A running preview with percentage progress, the total found, a rolling list that marks the newest batch, and per-run report downloads below.
+4. A completed product preview with recent matches, the later Pro URL-safety cards, report downloads and the full run history.
+5. The first four Pro workflow cards, including one-row scrollable URL examples, above the latest highlighted run and its report buttons.
+6. The redirect report opened in Google Sheets: relative source and target pairs with no header row, ready to import into a redirect plugin.
+7. The changes report opened in Google Sheets: every item with its title, old and new slug, old and new URL, and a note column flagging duplicate titles.
 
 == Changelog ==
 
@@ -114,4 +117,5 @@ It processes in batches and continues automatically, and there is an option to s
 * A flushed write-ahead journal makes interrupted Apply batches recoverable without losing Undo rows.
 * Undo refuses to recreate a slug that another post has claimed since the run.
 * Preview reports how many titles contain product codes, filler words or non-Latin script.
+* Running previews show recent matches immediately and mark the newest batch without rendering an unbounded result list.
 * The `slug_sync_source_title` filter lets add-on plugins rewrite a title before its slug is generated.

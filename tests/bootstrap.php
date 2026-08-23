@@ -15,12 +15,78 @@ define( 'DAY_IN_SECONDS', 86400 );
 
 $GLOBALS['slug_sync_test_transients'] = array();
 $GLOBALS['slug_sync_test_posts']      = array();
+$GLOBALS['slug_sync_test_options']    = array();
 $GLOBALS['wp_rewrite']                = (object) array(
 	'feeds'           => array( 'feed', 'rss2' ),
 	'pagination_base' => 'page',
 );
 
 function add_action() {}
+
+function admin_url( $path = '' ) {
+	return 'https://example.test/wp-admin/' . ltrim( $path, '/' );
+}
+
+function __( $text ) {
+	return $text;
+}
+
+function esc_html__( $text ) {
+	return esc_html( $text );
+}
+
+function _n( $single, $plural, $number ) {
+	return 1 === (int) $number ? $single : $plural;
+}
+
+function has_filter() {
+	return false;
+}
+
+function esc_attr( $text ) {
+	return htmlspecialchars( (string) $text, ENT_QUOTES, 'UTF-8' );
+}
+
+function esc_attr_e( $text ) {
+	echo esc_attr( $text );
+}
+
+function esc_html( $text ) {
+	return htmlspecialchars( (string) $text, ENT_QUOTES, 'UTF-8' );
+}
+
+function number_format_i18n( $number ) {
+	return number_format( (float) $number, 0, '.', ',' );
+}
+
+function esc_html_e( $text ) {
+	echo esc_html( $text );
+}
+
+function esc_js( $text ) {
+	return str_replace( array( "\\", "'", "\r", "\n" ), array( "\\\\", "\\'", '\\r', '\\n' ), (string) $text );
+}
+
+function esc_url( $url ) {
+	return esc_attr( $url );
+}
+
+function wp_nonce_field() {
+	echo '<input type="hidden" name="_wpnonce" value="testnonce">';
+}
+
+function wp_nonce_url( $url, $action = -1, $name = '_wpnonce' ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
+	$separator = false === strpos( $url, '?' ) ? '?' : '&';
+	return $url . $separator . rawurlencode( $name ) . '=testnonce';
+}
+
+function wp_verify_nonce( $nonce, $action = -1 ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
+	return 'testnonce' === (string) $nonce ? 1 : false;
+}
+
+function sanitize_text_field( $text ) {
+	return trim( strip_tags( (string) $text ) );
+}
 
 function sanitize_key( $key ) {
 	return preg_replace( '/[^a-z0-9_\-]/', '', strtolower( (string) $key ) );
@@ -56,8 +122,18 @@ function get_post( $post_id ) {
 	return isset( $GLOBALS['slug_sync_test_posts'][ $post_id ] ) ? $GLOBALS['slug_sync_test_posts'][ $post_id ] : null;
 }
 
-function get_option( $option ) {
-	return 'permalink_structure' === $option ? '/%postname%/' : '';
+function get_option( $option, $default = false ) {
+	if ( 'permalink_structure' === $option ) {
+		return '/%postname%/';
+	}
+
+	return array_key_exists( $option, $GLOBALS['slug_sync_test_options'] )
+		? $GLOBALS['slug_sync_test_options'][ $option ]
+		: $default;
+}
+
+function wp_unslash( $value ) {
+	return $value;
 }
 
 function _truncate_post_slug( $slug, $length = 200 ) {

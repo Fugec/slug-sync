@@ -65,6 +65,9 @@ class Slug_Sync {
 	/** Finished runs kept in history before the oldest are pruned with their reports. */
 	const MAX_RUNS = 50;
 
+	/** Recent matches kept on screen while the complete result remains in CSV. */
+	const MAX_RECENT_FINDINGS = 30;
+
 	/** Advertised Pro price, kept out of the translatable sentence around it. */
 	const PRO_PRICE = '$79.99';
 
@@ -406,6 +409,7 @@ class Slug_Sync {
 			'sig_code'          => 0,
 			'sig_stopword'      => 0,
 			'sig_non_latin'     => 0,
+			'recent_findings'   => array(),
 		);
 
 		if ( ! self::add_option_once( self::ACTIVE_OPT, $run_id ) ) {
@@ -1510,19 +1514,19 @@ class Slug_Sync {
 			   what made the screen read as a different piece of software. */
 			.slug-sync-admin {
 				--ss-navy: #0b0f43;
-				--ss-accent: #f53e02;
-				--ss-accent-ink: #dc3802;
-				--ss-accent-soft: rgba(245, 62, 2, .09);
+				--ss-accent: #f43d03;
+				--ss-accent-ink: #f43d03;
+				--ss-accent-soft: rgba(244, 61, 3, .09);
 				--ss-bg-2: rgba(11, 15, 67, .035);
 				--ss-muted: rgba(11, 15, 67, .66);
 				--ss-dim: rgba(11, 15, 67, .48);
 				--ss-line: rgba(11, 15, 67, .10);
 				--ss-line-2: rgba(11, 15, 67, .20);
-				--ss-r: 14px;
+				--ss-r: 16px;
 				--ss-r-sm: 10px;
 				--ss-ease: cubic-bezier(.22, 1, .36, 1);
 			}
-			.slug-sync-admin { max-width: none; }
+			.slug-sync-admin { color: var(--ss-navy); max-width: none; }
 			.slug-sync-brand {
 				align-items: center;
 				display: flex;
@@ -1541,14 +1545,15 @@ class Slug_Sync {
 				box-sizing: border-box;
 				margin: 18px 0;
 				padding: 24px;
+				position: relative;
 				transition: border-color .25s, box-shadow .25s var(--ss-ease);
 			}
+			.slug-sync-admin code { background: #fff; border-radius: 4px; }
 			/* The site lifts its cards on hover. These hold forms rather than
 			   links, so they take the border and shadow and not the movement --
 			   a control that shifts under the pointer is worse than a static
 			   one, however much it matches. */
 			.slug-sync-card:hover { border-color: var(--ss-line-2); box-shadow: 0 14px 32px -20px rgba(11, 15, 67, .3); }
-			.slug-sync-intro { border-left: 4px solid var(--ss-accent); }
 			.slug-sync-intro > p:first-child { font-size: 15px; margin-top: 0; }
 			.slug-sync-steps {
 				display: grid;
@@ -1650,7 +1655,7 @@ class Slug_Sync {
 			}
 			.slug-sync-choice:hover,
 			.slug-sync-choice:focus-within { border-color: var(--ss-navy); box-shadow: 0 0 0 1px var(--ss-navy); }
-			.slug-sync-choice:has(input:checked) { background: var(--ss-accent-soft); border-color: var(--ss-accent); box-shadow: inset 3px 0 0 var(--ss-accent); }
+			.slug-sync-choice:has(input:checked) { background: var(--ss-accent-soft); border-color: var(--ss-accent); }
 			.slug-sync-choice input { margin-top: 3px; }
 			.slug-sync-choice-title { display: block; font-size: 14px; margin-bottom: 4px; }
 			.slug-sync-choice-help { color: var(--ss-muted); display: block; line-height: 1.5; }
@@ -1666,26 +1671,53 @@ class Slug_Sync {
 				vertical-align: 1px;
 			}
 			.slug-sync-example { background: var(--ss-bg-2); border-radius: var(--ss-r-sm); display: inline-block; margin-top: 5px; padding: 3px 7px; }
-			.slug-sync-apply-note { background: #fcf0f1; border-left: 4px solid #d63638; border-radius: var(--ss-r-sm); padding: 12px 14px; }
-			.slug-sync-hierarchy-note { background: #fcf9e8; border-left: 4px solid #dba617; border-radius: var(--ss-r-sm); padding: 12px 14px; }
+			.slug-sync-apply-note { background: #fcf0f1; border: 1px solid var(--ss-line); border-radius: var(--ss-r-sm); padding: 12px 14px; }
+			.slug-sync-hierarchy-note { background: #fcf9e8; border: 1px solid var(--ss-line); border-radius: var(--ss-r-sm); padding: 12px 14px; }
 			.slug-sync-hierarchy-note p { margin: 6px 0 0; }
-			.slug-sync-safety { background: var(--ss-bg-2); border: 1px solid var(--ss-line); border-left: 4px solid var(--ss-navy); border-radius: var(--ss-r-sm); padding: 16px 18px; }
+			.slug-sync-safety { background: var(--ss-bg-2); border: 1px solid var(--ss-line); border-radius: var(--ss-r-sm); padding: 16px 18px; }
 			.slug-sync-safety h3 { margin: 0 0 6px; }
 			.slug-sync-safety ul { margin-bottom: 0; }
 			.slug-sync-actions { align-items: center; display: flex; gap: 12px; margin: 18px 0 24px; }
-			.slug-sync-actions .button-primary { min-height: 36px; padding: 4px 18px; }
+			.slug-sync-admin .button {
+				align-items: center;
+				background: #fff;
+				border: 1px solid var(--ss-line-2);
+				border-radius: 10px;
+				box-sizing: border-box;
+				color: var(--ss-navy);
+				display: inline-flex;
+				font-size: 14px;
+				font-weight: 600;
+				justify-content: center;
+				line-height: 1.2;
+				min-height: 42px;
+				padding: 9px 18px;
+				transition: transform .14s var(--ss-ease), border-color .2s, background .2s, box-shadow .25s;
+			}
+			.slug-sync-admin .button:hover {
+				background: var(--ss-bg-2);
+				border-color: var(--ss-navy);
+				color: var(--ss-navy);
+				transform: translateY(-1px);
+			}
+			.slug-sync-admin .button:active { transform: translateY(0); }
+			.slug-sync-admin .button.button-small {
+				font-size: 13px;
+				min-height: 38px;
+				padding: 8px 14px;
+			}
 			.slug-sync-admin .button-primary {
 				background: var(--ss-accent);
 				border-color: var(--ss-accent);
-				border-radius: 8px;
-				box-shadow: 0 8px 22px -10px rgba(245, 62, 2, .75);
+				border-radius: 10px;
+				box-shadow: 0 8px 22px -10px rgba(244, 61, 3, .75);
 				color: #fff;
 				text-shadow: none;
 			}
 			.slug-sync-admin .button-primary:hover {
 				background: var(--ss-accent);
 				border-color: var(--ss-accent);
-				box-shadow: 0 12px 30px -10px rgba(245, 62, 2, .85);
+				box-shadow: 0 12px 30px -10px rgba(244, 61, 3, .85);
 				color: #fff;
 				filter: brightness(.92);
 			}
@@ -1695,13 +1727,73 @@ class Slug_Sync {
 				box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--ss-navy);
 				color: #fff;
 			}
-			.slug-sync-admin .button { border-radius: 8px; }
 			.slug-sync-controls { align-items: center; display: flex; flex-wrap: wrap; gap: 8px; }
 			.slug-sync-controls form,
 			.slug-sync-history form { margin: 0; }
-			.slug-sync-history td { vertical-align: top; }
-			.slug-sync-history .button { margin: 0 4px 4px 0; }
-			.slug-sync-table-wrap { overflow-x: auto; }
+			.slug-sync-history-panel {
+				background: #fff;
+				border: 1px solid var(--ss-line);
+				border-radius: var(--ss-r);
+				box-sizing: border-box;
+				margin: 24px 0;
+				padding: 24px;
+			}
+			.slug-sync-history-panel > h2 { color: var(--ss-navy); margin: 0 0 6px; }
+			.slug-sync-history-panel > p { color: var(--ss-muted); margin: 0 0 18px; }
+			.slug-sync-table-wrap {
+				border: 1px solid var(--ss-line);
+				border-radius: var(--ss-r-sm);
+				overflow-x: auto;
+			}
+			.slug-sync-history { border: 0; border-collapse: separate; border-spacing: 0; }
+			.slug-sync-history.striped > tbody > :nth-child(odd) { background: var(--ss-bg-2); }
+			.slug-sync-history.striped > tbody > :nth-child(even) { background: #fff; }
+			.slug-sync-history thead th {
+				background: var(--ss-bg-2);
+				border-bottom: 1px solid var(--ss-line-2);
+				color: var(--ss-navy);
+				font-size: 12px;
+				font-weight: 700;
+				letter-spacing: .055em;
+				padding: 12px 14px;
+				text-transform: uppercase;
+			}
+			.slug-sync-history td { color: var(--ss-muted); font-size: 13px; line-height: 1.5; padding: 14px; vertical-align: top; }
+			.slug-sync-history td strong { color: var(--ss-navy); }
+			.slug-sync-history tbody tr.slug-sync-latest-run > td {
+				background: var(--ss-accent-soft) !important;
+				border-bottom-color: var(--ss-line);
+				border-top: 1px solid var(--ss-line);
+			}
+			.slug-sync-latest-badge {
+				background: var(--ss-accent);
+				border-radius: 999px;
+				color: #fff;
+				display: inline-flex;
+				font-size: 10px;
+				font-weight: 700;
+				letter-spacing: .08em;
+				margin-bottom: 8px;
+				padding: 4px 8px;
+				text-transform: uppercase;
+			}
+			.slug-sync-report-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+			.slug-sync-table-wrap + .description { margin-top: 16px; }
+			.slug-sync-history .slug-sync-report-button { margin: 0; min-width: 150px; white-space: nowrap; }
+			.slug-sync-report-button::before { content: "\2193"; font-size: 15px; line-height: 1; margin-right: 7px; }
+			.slug-sync-latest-run .slug-sync-report-button--changes {
+				background: var(--ss-accent);
+				border-color: var(--ss-accent);
+				box-shadow: 0 8px 22px -10px rgba(244, 61, 3, .75);
+				color: #fff;
+			}
+			.slug-sync-latest-run .slug-sync-report-button--changes:hover {
+				background: var(--ss-accent);
+				border-color: var(--ss-accent);
+				color: #fff;
+				filter: brightness(.92);
+			}
+			.slug-sync-latest-run .slug-sync-report-button--redirects { border-color: var(--ss-accent); color: var(--ss-accent-ink); }
 			.slug-sync-advanced { margin: 0 0 18px; }
 			.slug-sync-advanced > summary {
 				align-items: center;
@@ -1786,7 +1878,7 @@ class Slug_Sync {
 			   ships several and they were all showing up at once. */
 			.slug-sync-admin .description,
 			.slug-sync-admin .slug-sync-choice-help,
-			.slug-sync-admin p { font-size: 13px; }
+			.slug-sync-admin p { font-size: 14px; line-height: 1.55; }
 			.slug-sync-admin .slug-sync-card > p,
 			.slug-sync-admin .slug-sync-intro > p { font-size: 14px; }
 			.slug-sync-admin .form-table th { font-size: 14px; padding-top: 18px; width: 180px; }
@@ -1831,16 +1923,231 @@ class Slug_Sync {
 				font-size: 13px;
 				padding: 12px 14px;
 			}
-			.slug-sync-eg code { background: #fff; }
+			.slug-sync-pro-slider { margin: 18px 0; min-width: 0; }
+			.slug-sync-pro-grid {
+				display: grid;
+				grid-auto-columns: calc((100% - 36px) / 4);
+				grid-auto-flow: column;
+				gap: 12px;
+				list-style: none;
+				margin: 0;
+				overflow-x: auto;
+				overflow-y: hidden;
+				overscroll-behavior-inline: contain;
+				padding: 0;
+				scroll-behavior: smooth;
+				scroll-snap-type: x mandatory;
+				scrollbar-width: none;
+			}
+			.slug-sync-pro-grid::-webkit-scrollbar { display: none; }
+			.slug-sync-pro-grid > li {
+				background: var(--ss-accent-soft);
+				border: 1px solid var(--ss-line);
+				border-top: 3px solid var(--ss-accent);
+				border-radius: var(--ss-r-sm);
+				box-sizing: border-box;
+				box-shadow: 0 12px 28px -24px rgba(11, 15, 67, .6);
+				display: flex;
+				flex-direction: column;
+				margin: 0;
+				min-width: 0;
+				padding: 20px;
+				scroll-snap-align: start;
+				scroll-snap-stop: always;
+			}
+			.slug-sync-pro-grid strong { color: var(--ss-navy); display: block; font-size: 15px; margin-bottom: 7px; }
+			.slug-sync-pro-grid p { color: var(--ss-muted); font-size: 14px; margin: 0 0 14px; }
+			.slug-sync-pro-grid code {
+				border: 1px solid var(--ss-line);
+				color: var(--ss-navy);
+				flex: 0 0 auto;
+				padding: 3px 6px;
+				white-space: nowrap;
+			}
+			.slug-sync-pro-icon {
+				align-items: center;
+				background: var(--ss-navy);
+				border-radius: 10px;
+				color: var(--ss-accent);
+				display: inline-flex;
+				height: 42px;
+				justify-content: center;
+				margin-bottom: 14px;
+				width: 42px;
+			}
+			.slug-sync-pro-icon svg { display: block; height: 22px; width: 22px; }
+			.slug-sync-pro-location {
+				color: var(--ss-accent-ink);
+				display: block;
+				font-size: 11px;
+				font-weight: 700;
+				letter-spacing: .08em;
+				margin-bottom: 8px;
+				text-transform: uppercase;
+			}
+			.slug-sync-pro-example {
+				align-items: center;
+				background: var(--ss-accent-soft);
+				border: 1px solid var(--ss-line);
+				border-radius: 8px;
+				display: flex;
+				flex-wrap: nowrap;
+				gap: 4px;
+				line-height: 1.7;
+				margin-top: auto;
+				overflow-x: auto;
+				overscroll-behavior-inline: contain;
+				padding: 10px;
+				white-space: nowrap;
+			}
+			.slug-sync-pro-example .arrow { color: var(--ss-accent-ink); flex: 0 0 auto; font-weight: 700; padding: 0 4px; }
+			.slug-sync-pro-slider-controls { align-items: center; display: flex; gap: 10px; justify-content: center; margin-top: 14px; }
+			.slug-sync-admin .slug-sync-pro-slider-button {
+				background: var(--ss-navy);
+				border-color: var(--ss-navy);
+				color: var(--ss-accent);
+				height: 42px;
+				min-height: 42px;
+				padding: 0;
+				width: 42px;
+			}
+			.slug-sync-admin .slug-sync-pro-slider-button:hover { background: var(--ss-navy); border-color: var(--ss-navy); color: var(--ss-accent); filter: brightness(1.3); }
+			.slug-sync-pro-slider-button:disabled { cursor: default; opacity: .32; transform: none; }
+			.slug-sync-pro-slider-button svg { height: 18px; width: 18px; }
+			.slug-sync-pro-slider-prev svg { transform: rotate(180deg); }
+			.slug-sync-pro-slider-count { color: var(--ss-muted); font-size: 13px; font-weight: 600; min-width: 84px; text-align: center; }
+			.slug-sync-card > .slug-sync-pro-status {
+				align-items: center;
+				background: var(--ss-navy);
+				border-radius: 999px;
+				color: #fff;
+				display: inline-flex;
+				font-size: 12px;
+				flex-wrap: wrap;
+				gap: 5px;
+				line-height: 1.4;
+				margin: 0;
+				max-width: calc(100% - 48px);
+				padding: 7px 11px;
+				position: absolute;
+				right: 24px;
+				top: 24px;
+				width: fit-content;
+			}
+			.slug-sync-pro-status strong { color: #fff; }
+			.slug-sync-pro-cta { font-size: 14px; min-height: 46px; padding: 11px 22px; }
+			.slug-sync-pro-cta::after { content: "\2192"; font-size: 17px; line-height: 1; margin-left: 8px; }
+			@media (max-width: 1200px) {
+				.slug-sync-pro-grid { grid-auto-columns: calc((100% - 24px) / 3); }
+			}
+			@media (max-width: 900px) {
+				.slug-sync-pro-grid { grid-auto-columns: calc((100% - 12px) / 2); }
+			}
+			@media (prefers-reduced-motion: reduce) {
+				.slug-sync-pro-grid { scroll-behavior: auto; }
+			}
+			.slug-sync-findings {
+				border-top: 1px solid var(--ss-line);
+				margin-top: 20px;
+				padding-top: 18px;
+			}
+			.slug-sync-findings-head {
+				align-items: center;
+				display: flex;
+				flex-wrap: wrap;
+				gap: 10px;
+				justify-content: space-between;
+				margin-bottom: 10px;
+			}
+			.slug-sync-findings-head h3 { color: var(--ss-navy); font-size: 15px; margin: 0; }
+			.slug-sync-findings-count {
+				background: var(--ss-navy);
+				border-radius: 999px;
+				color: #fff;
+				font-size: 12px;
+				font-weight: 700;
+				padding: 5px 10px;
+			}
+			.slug-sync-findings-note { color: var(--ss-muted); margin: 0 0 12px; }
+			.slug-sync-findings-list {
+				display: grid;
+				gap: 7px;
+				list-style: none;
+				margin: 0;
+				max-height: 330px;
+				overflow-y: auto;
+				padding: 1px 4px 1px 1px;
+			}
+			.slug-sync-finding {
+				align-items: center;
+				background: #fff;
+				border: 1px solid var(--ss-line);
+				border-radius: 9px;
+				display: grid;
+				gap: 10px;
+				grid-template-columns: minmax(140px, .7fr) minmax(260px, 1.5fr) auto;
+				margin: 0;
+				padding: 10px 12px;
+			}
+			.slug-sync-finding-title { color: var(--ss-navy); font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
+			.slug-sync-finding-route { align-items: center; display: flex; flex-wrap: nowrap; gap: 7px; min-width: 0; overflow-x: auto; overscroll-behavior-inline: contain; white-space: nowrap; }
+			.slug-sync-finding-route code { flex: 0 0 auto; white-space: nowrap; }
+			.slug-sync-finding-arrow { color: var(--ss-accent-ink); font-weight: 700; }
+			.slug-sync-finding-new {
+				background: var(--ss-accent);
+				border-radius: 999px;
+				color: #fff;
+				font-size: 10px;
+				font-weight: 700;
+				letter-spacing: .06em;
+				padding: 4px 8px;
+				text-transform: uppercase;
+				white-space: nowrap;
+			}
+			.slug-sync-batch-messages {
+				background: #fcf0f1;
+				border: 1px solid var(--ss-line);
+				border-radius: var(--ss-r-sm);
+				margin-top: 12px;
+				padding: 12px 14px;
+			}
+			.slug-sync-batch-messages strong { color: #8a2424; }
+			.slug-sync-batch-messages ul { margin-bottom: 0; }
+			.slug-sync-pro-running {
+				align-items: flex-start;
+				background: var(--ss-accent-soft);
+				border: 1px solid var(--ss-line);
+				border-radius: var(--ss-r-sm);
+				display: grid;
+				gap: 5px;
+				margin-top: 16px;
+				padding: 14px 16px;
+			}
+			.slug-sync-pro-running .slug-sync-eyebrow { margin-bottom: 2px; }
+			.slug-sync-pro-running strong { color: var(--ss-navy); font-size: 14px; }
+			.slug-sync-pro-running p { color: var(--ss-muted); margin: 0; }
 			.slug-sync-technical { margin-top: 6px; }
 			.slug-sync-technical summary { color: var(--ss-dim); cursor: pointer; font-size: 12px; }
-			.slug-sync-batch-log summary { cursor: pointer; font-weight: 600; }
-			.slug-sync-batch-log pre { background: var(--ss-bg-2); border: 1px solid var(--ss-line); max-height: 340px; overflow: auto; padding: 12px; }
 			@media (max-width: 782px) {
 				.slug-sync-brand img { height: 28px; }
 				.slug-sync-steps { grid-template-columns: 1fr; }
 				.slug-sync-select { max-width: 100%; min-width: 0; width: 100%; }
 				.slug-sync-card { padding: 16px; }
+				.slug-sync-history-panel { padding: 16px; }
+				.slug-sync-admin .button { width: 100%; }
+				.slug-sync-controls form,
+				.slug-sync-report-actions { width: 100%; }
+				.slug-sync-admin .slug-sync-pro-slider-button { width: 42px; }
+				.slug-sync-card > .slug-sync-pro-status {
+					margin-bottom: 16px;
+					max-width: 100%;
+					position: static;
+				}
+				.slug-sync-finding { grid-template-columns: 1fr; }
+				.slug-sync-finding-new { justify-self: start; }
+			}
+			@media (max-width: 600px) {
+				.slug-sync-pro-grid { grid-auto-columns: 100%; }
 			}
 		</style>
 		<?php
@@ -1942,6 +2249,163 @@ class Slug_Sync {
 	}
 
 	/**
+	 * Reduce one report row to the small shape retained for the live findings UI.
+	 *
+	 * @param array<int,mixed> $row Changes-report row.
+	 * @return array<string,mixed>|null
+	 */
+	private static function finding_from_change_row( $row ) {
+		if ( ! is_array( $row ) || count( $row ) < 9 ) {
+			return null;
+		}
+
+		return array(
+			'id'    => absint( $row[0] ),
+			'title' => (string) $row[3],
+			'old'   => (string) $row[4],
+			'new'   => (string) $row[5],
+			'note'  => (string) $row[8],
+		);
+	}
+
+	/**
+	 * Stable identity for one displayed slug transition.
+	 *
+	 * @param array<string,mixed> $finding Finding record.
+	 * @return string
+	 */
+	private static function finding_key( $finding ) {
+		return absint( isset( $finding['id'] ) ? $finding['id'] : 0 ) . '|' .
+			md5( (string) ( isset( $finding['old'] ) ? $finding['old'] : '' ) . "\0" . (string) ( isset( $finding['new'] ) ? $finding['new'] : '' ) );
+	}
+
+	/**
+	 * Append one batch to the bounded, deduplicated live findings list.
+	 *
+	 * The CSV is the complete result. Keeping only a small display window avoids
+	 * growing the runs option or repainting thousands of rows on every refresh.
+	 *
+	 * @param mixed $stored Previously retained findings.
+	 * @param mixed $batch  Findings from the current batch.
+	 * @return array<int,array<string,mixed>>
+	 */
+	private static function merge_recent_findings( $stored, $batch ) {
+		$merged = array();
+
+		foreach ( array_merge( is_array( $stored ) ? $stored : array(), is_array( $batch ) ? $batch : array() ) as $finding ) {
+			if ( ! is_array( $finding ) || empty( $finding['id'] ) || ! isset( $finding['old'], $finding['new'] ) ) {
+				continue;
+			}
+
+			$finding = array(
+				'id'    => absint( $finding['id'] ),
+				'title' => isset( $finding['title'] ) ? (string) $finding['title'] : '',
+				'old'   => (string) $finding['old'],
+				'new'   => (string) $finding['new'],
+				'note'  => isset( $finding['note'] ) ? (string) $finding['note'] : '',
+			);
+			$key     = self::finding_key( $finding );
+
+			// Reinsert a repeated transition at the end so it reads as recent.
+			unset( $merged[ $key ] );
+			$merged[ $key ] = $finding;
+		}
+
+		return array_slice( array_values( $merged ), -self::MAX_RECENT_FINDINGS );
+	}
+
+	/**
+	 * Render the accumulated live findings and visibly mark this batch.
+	 *
+	 * @param array<string,mixed>              $run            Updated run record.
+	 * @param array<int,array<string,mixed>>   $batch_findings Findings from this response.
+	 * @param array<int,string>                $messages       Batch errors or recovery notes.
+	 */
+	private static function render_findings( $run, $batch_findings, $messages ) {
+		$recent = self::merge_recent_findings( isset( $run['recent_findings'] ) ? $run['recent_findings'] : array(), array() );
+		$new     = array();
+
+		foreach ( self::merge_recent_findings( array(), $batch_findings ) as $finding ) {
+			$new[ self::finding_key( $finding ) ] = true;
+		}
+
+		$found = isset( $run['changed'] ) ? absint( $run['changed'] ) : 0;
+		?>
+		<div class="slug-sync-findings">
+			<div class="slug-sync-findings-head">
+				<h3><?php esc_html_e( 'Items found', 'slug-sync' ); ?></h3>
+				<span class="slug-sync-findings-count">
+					<?php
+					printf(
+						/* translators: %s: number of matching items found so far. */
+						esc_html__( '%s found so far', 'slug-sync' ),
+						esc_html( number_format_i18n( $found ) )
+					);
+					?>
+				</span>
+			</div>
+
+			<?php if ( $recent ) : ?>
+				<p class="slug-sync-findings-note">
+					<?php
+						printf(
+							/* translators: 1: recent items shown on screen, 2: total items found. */
+							esc_html__( 'Showing the %1$d most recent matches. The changes report contains all %2$d.', 'slug-sync' ),
+							absint( count( $recent ) ),
+							absint( $found )
+						);
+					?>
+				</p>
+				<ol class="slug-sync-findings-list">
+					<?php foreach ( array_reverse( $recent ) as $finding ) : ?>
+						<?php $is_new = isset( $new[ self::finding_key( $finding ) ] ); ?>
+						<li class="slug-sync-finding<?php echo $is_new ? ' is-new' : ''; ?>">
+							<span class="slug-sync-finding-title">#<?php echo absint( $finding['id'] ); ?> <?php echo esc_html( $finding['title'] ); ?></span>
+							<span class="slug-sync-finding-route">
+								<code><?php echo esc_html( $finding['old'] ); ?></code>
+								<span class="slug-sync-finding-arrow" aria-hidden="true">→</span>
+								<code><?php echo esc_html( $finding['new'] ); ?></code>
+								<?php if ( $finding['note'] ) : ?><span class="description"><?php echo esc_html( $finding['note'] ); ?></span><?php endif; ?>
+							</span>
+							<?php if ( $is_new ) : ?><span class="slug-sync-finding-new"><?php esc_html_e( 'New this batch', 'slug-sync' ); ?></span><?php endif; ?>
+						</li>
+					<?php endforeach; ?>
+				</ol>
+			<?php else : ?>
+				<p class="slug-sync-findings-note"><?php esc_html_e( 'No matching slug changes have been found yet.', 'slug-sync' ); ?></p>
+			<?php endif; ?>
+
+			<?php if ( $messages ) : ?>
+				<div class="slug-sync-batch-messages">
+					<strong><?php esc_html_e( 'Batch messages', 'slug-sync' ); ?></strong>
+					<ul>
+						<?php foreach ( array_slice( $messages, 0, 10 ) as $message ) : ?>
+							<li><?php echo esc_html( $message ); ?></li>
+						<?php endforeach; ?>
+					</ul>
+				</div>
+			<?php endif; ?>
+		</div>
+		<?php
+	}
+
+	/**
+	 * Small Pro explainer shown during preview without competing with progress.
+	 */
+	private static function running_pro_teaser() {
+		if ( has_filter( 'slug_sync_source_title' ) ) {
+			return;
+		}
+		?>
+		<div class="slug-sync-pro-running">
+			<span class="slug-sync-eyebrow"><?php esc_html_e( 'While the preview runs', 'slug-sync' ); ?></span>
+			<strong><?php esc_html_e( 'Slug Sync Pro adds three separate workflows', 'slug-sync' ); ?></strong>
+			<p><?php esc_html_e( 'Product-field URL rules, catalogue organisation, and protected category and tag URL changes. Full examples appear when the preview finishes.', 'slug-sync' ); ?></p>
+		</div>
+		<?php
+	}
+
+	/**
 	 * Resume and cancel controls for an unfinished run.
 	 *
 	 * @param array<string,mixed> $run  Run record.
@@ -1958,14 +2422,37 @@ class Slug_Sync {
 				<input type="hidden" name="run_id" value="<?php echo esc_attr( $run_id ); ?>">
 				<button class="button button-primary"><?php echo esc_html( $auto ? __( 'Continue', 'slug-sync' ) : __( 'Resume run', 'slug-sync' ) ); ?></button>
 			</form>
-			<form method="post" action="<?php echo esc_url( self::page_url() ); ?>" onsubmit="return confirm('<?php echo esc_js( __( 'Stop this run? Work already completed will not be reversed, and the partial reports will be kept.', 'slug-sync' ) ); ?>');">
+			<form class="slug-sync-stop-form" method="post" action="<?php echo esc_url( self::page_url() ); ?>" onsubmit="return confirm('<?php echo esc_js( __( 'Stop this run? Work already completed will not be reversed, and the partial reports will be kept.', 'slug-sync' ) ); ?>');">
 				<?php wp_nonce_field( 'slug_sync' ); ?>
 				<input type="hidden" name="run_id" value="<?php echo esc_attr( $run_id ); ?>">
 				<button class="button" name="slug_sync_cancel" value="1"><?php esc_html_e( 'Stop run', 'slug-sync' ); ?></button>
 			</form>
 		</div>
 		<?php if ( $auto ) : ?>
-			<script>setTimeout(function(){document.getElementById('slug-sync-next').submit();},700);</script>
+			<script>
+			(function(){
+				var next = document.getElementById('slug-sync-next');
+				var timer;
+				var stopAuto = function(event){
+					if (event.target.closest && event.target.closest('.slug-sync-stop-form')) {
+						window.clearTimeout(timer);
+						next.setAttribute('data-auto-stopped', '1');
+					}
+				};
+
+				/* Stop controls later in the document (including run history) count
+				 * too. Delegation also covers keyboard and assistive-technology use. */
+				document.addEventListener('focusin', stopAuto);
+				document.addEventListener('pointerdown', stopAuto);
+				document.addEventListener('submit', stopAuto);
+
+				timer = window.setTimeout(function(){
+					if (!next.hasAttribute('data-auto-stopped')) {
+						next.submit();
+					}
+				}, 5000);
+			})();
+			</script>
 		<?php endif; ?>
 		<?php
 	}
@@ -1985,7 +2472,8 @@ class Slug_Sync {
 		$visible  = $show_all ? $runs : array_slice( $runs, 0, 20 );
 		$types    = self::post_types();
 
-		echo '<hr><h2>' . esc_html__( 'Previous runs', 'slug-sync' ) . '</h2>';
+		echo '<section class="slug-sync-history-panel">';
+		echo '<h2>' . esc_html__( 'Previous runs', 'slug-sync' ) . '</h2>';
 		echo '<p>' . esc_html__( 'Each row is one preview or apply run. Reports can be downloaded at any time; only applied changes can be undone.', 'slug-sync' ) . '</p>';
 		echo '<div class="slug-sync-table-wrap"><table class="widefat striped slug-sync-history"><thead><tr>';
 		echo '<th>' . esc_html__( 'Started', 'slug-sync' ) . '</th>';
@@ -1996,28 +2484,37 @@ class Slug_Sync {
 		echo '<th>' . esc_html__( 'Actions', 'slug-sync' ) . '</th>';
 		echo '</tr></thead><tbody>';
 
+		$latest_rendered = false;
+
 		foreach ( $visible as $run ) {
 			if ( empty( $run['id'] ) ) {
 				continue;
 			}
 
-			$run_id      = sanitize_key( $run['id'] );
-			$post_type   = isset( $run['post_type'] ) ? sanitize_key( $run['post_type'] ) : '';
-			$type_label  = isset( $types[ $post_type ] ) ? $types[ $post_type ]->labels->singular_name : $post_type;
-			$created_at  = isset( $run['created_at'] ) ? (int) $run['created_at'] : 0;
-			$status      = isset( $run['status'] ) ? sanitize_key( $run['status'] ) : '';
-			$done        = isset( $run['done'] ) ? (int) $run['done'] : 0;
-			$total       = isset( $run['total'] ) ? (int) $run['total'] : 0;
-			$changed     = isset( $run['changed'] ) ? (int) $run['changed'] : 0;
-			$errors      = isset( $run['errors'] ) ? (int) $run['errors'] : 0;
-			$changes     = self::report_path( $run_id, 'changes' );
-			$redirects   = self::report_path( $run_id, 'redirects' );
-			$is_active   = ! self::run_is_finished( $run );
-			$is_apply    = isset( $run['mode'] ) && 'apply' === $run['mode'];
-			$write_label = isset( $run['write'] ) && 'hooks' === $run['write'] ? __( 'standard WordPress update', 'slug-sync' ) : __( 'quiet update', 'slug-sync' );
+			$is_latest       = ! $latest_rendered;
+			$latest_rendered = true;
+			$run_id          = sanitize_key( $run['id'] );
+			$post_type       = isset( $run['post_type'] ) ? sanitize_key( $run['post_type'] ) : '';
+			$type_label      = isset( $types[ $post_type ] ) ? $types[ $post_type ]->labels->singular_name : $post_type;
+			$created_at      = isset( $run['created_at'] ) ? (int) $run['created_at'] : 0;
+			$status          = isset( $run['status'] ) ? sanitize_key( $run['status'] ) : '';
+			$done            = isset( $run['done'] ) ? (int) $run['done'] : 0;
+			$total           = isset( $run['total'] ) ? (int) $run['total'] : 0;
+			$changed         = isset( $run['changed'] ) ? (int) $run['changed'] : 0;
+			$errors          = isset( $run['errors'] ) ? (int) $run['errors'] : 0;
+			$changes         = self::report_path( $run_id, 'changes' );
+			$redirects       = self::report_path( $run_id, 'redirects' );
+			$is_active       = ! self::run_is_finished( $run );
+			$is_apply        = isset( $run['mode'] ) && 'apply' === $run['mode'];
+			$write_label     = isset( $run['write'] ) && 'hooks' === $run['write'] ? __( 'standard WordPress update', 'slug-sync' ) : __( 'quiet update', 'slug-sync' );
 			?>
-			<tr>
-				<td><?php echo esc_html( $created_at ? wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $created_at ) : '—' ); ?></td>
+			<tr<?php echo $is_latest ? ' class="slug-sync-latest-run"' : ''; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- fixed attribute string. ?>>
+				<td>
+					<?php if ( $is_latest ) : ?>
+						<span class="slug-sync-latest-badge"><?php esc_html_e( 'Latest run', 'slug-sync' ); ?></span><br>
+					<?php endif; ?>
+					<?php echo esc_html( $created_at ? wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $created_at ) : '—' ); ?>
+				</td>
 				<td>
 					<strong><?php echo esc_html( $type_label ); ?></strong><br>
 					<span class="description"><?php echo esc_html( $is_apply ? __( 'Apply', 'slug-sync' ) . ' / ' . $write_label : __( 'Preview', 'slug-sync' ) ); ?></span>
@@ -2045,12 +2542,14 @@ class Slug_Sync {
 					</span>
 				</td>
 				<td>
+					<div class="slug-sync-report-actions">
 					<?php if ( is_file( $changes ) ) : ?>
-						<a class="button button-small" href="<?php echo esc_url( self::report_download_url( 'changes', $run_id ) ); ?>"><?php esc_html_e( 'Download changes', 'slug-sync' ); ?></a>
+						<a class="button button-small slug-sync-report-button slug-sync-report-button--changes" href="<?php echo esc_url( self::report_download_url( 'changes', $run_id ) ); ?>"><?php esc_html_e( 'Download changes', 'slug-sync' ); ?></a>
 					<?php endif; ?>
 					<?php if ( is_file( $redirects ) ) : ?>
-						<a class="button button-small" href="<?php echo esc_url( self::report_download_url( 'redirects', $run_id ) ); ?>"><?php esc_html_e( 'Download redirects', 'slug-sync' ); ?></a>
+						<a class="button button-small slug-sync-report-button slug-sync-report-button--redirects" href="<?php echo esc_url( self::report_download_url( 'redirects', $run_id ) ); ?>"><?php esc_html_e( 'Download redirects', 'slug-sync' ); ?></a>
 					<?php endif; ?>
+					</div>
 				</td>
 				<td>
 					<?php if ( $is_active ) : ?>
@@ -2078,18 +2577,20 @@ class Slug_Sync {
 		if ( count( $runs ) > 20 ) {
 			if ( $show_all ) {
 				printf(
-					'<p><a href="%s">%s</a></p>',
+					'<p><a class="button" href="%s">%s</a></p>',
 					esc_url( self::page_url() ),
 					esc_html__( 'Show the latest 20 runs', 'slug-sync' )
 				);
 			} else {
 				printf(
-					'<p><a href="%s">%s</a></p>',
+					'<p><a class="button" href="%s">%s</a></p>',
 					esc_url( add_query_arg( 'slug_sync_history', 'all', self::page_url() ) ),
 					esc_html__( 'Show all run history', 'slug-sync' )
 				);
 			}
 		}
+
+		echo '</section>';
 	}
 
 	/**
@@ -2106,14 +2607,14 @@ class Slug_Sync {
 		echo '<hr><h2>' . esc_html__( 'Reports from an earlier version', 'slug-sync' ) . '</h2><p>';
 
 		printf(
-			'<a class="button" href="%s">%s</a> ',
+			'<a class="button slug-sync-report-button slug-sync-report-button--changes" href="%s">%s</a> ',
 			esc_url( self::report_download_url( 'changes' ) ),
 			esc_html__( 'Download changes', 'slug-sync' )
 		);
 
 		if ( is_file( $redirects ) ) {
 			printf(
-				'<a class="button" href="%s">%s</a>',
+				'<a class="button slug-sync-report-button slug-sync-report-button--redirects" href="%s">%s</a>',
 				esc_url( self::report_download_url( 'redirects' ) ),
 				esc_html__( 'Download redirects', 'slug-sync' )
 			);
@@ -2198,6 +2699,13 @@ class Slug_Sync {
 				<div class="slug-sync-step"><strong><?php esc_html_e( '3. Apply', 'slug-sync' ); ?></strong><?php esc_html_e( 'Run again with Apply selected when the preview looks correct.', 'slug-sync' ); ?></div>
 			</div>
 		</div>
+
+		<?php
+		$returned_preview = self::returned_preview();
+		if ( $returned_preview ) {
+			self::upsell_card( $returned_preview );
+		}
+		?>
 
 		<form method="post" action="<?php echo esc_url( self::page_url() ); ?>" id="slug-sync-start-form">
 			<?php wp_nonce_field( 'slug_sync' ); ?>
@@ -2572,11 +3080,12 @@ class Slug_Sync {
 		$reported_rows = self::report_rows_by_id( $changes_path );
 		$journal_rows  = self::report_rows_by_id( $journal_path );
 
-		$log           = array();
-		$next_last     = $last_id;
-		$batch_changed = 0;
-		$batch_errors  = 0;
-		$report_failed = false;
+		$log            = array();
+		$batch_findings = array();
+		$next_last      = $last_id;
+		$batch_changed  = 0;
+		$batch_errors   = 0;
+		$report_failed  = false;
 
 		foreach ( $rows as $row ) {
 
@@ -2602,6 +3111,10 @@ class Slug_Sync {
 			// or report it twice.
 			if ( isset( $reported_rows[ $post_id ] ) ) {
 				$batch_changed++;
+				$finding = self::finding_from_change_row( $reported_rows[ $post_id ] );
+				if ( $finding ) {
+					$batch_findings[] = $finding;
+				}
 				continue;
 			}
 
@@ -2650,6 +3163,10 @@ class Slug_Sync {
 
 					$reported_rows[ $post_id ] = $planned;
 					$batch_changed++;
+					$finding = self::finding_from_change_row( $planned );
+					if ( $finding ) {
+						$batch_findings[] = $finding;
+					}
 					continue;
 				}
 			}
@@ -2754,7 +3271,10 @@ class Slug_Sync {
 			$reported_rows[ $post_id ] = $change_row;
 			$batch_changed++;
 
-			$log[] = sprintf( '#%d  %s  ->  %s%s', $row->ID, $old_slug, $new_slug, $note ? '   [' . $note . ']' : '' );
+			$finding = self::finding_from_change_row( $change_row );
+			if ( $finding ) {
+				$batch_findings[] = $finding;
+			}
 		}
 
 		fclose( $changes_handle );  // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
@@ -2796,6 +3316,7 @@ class Slug_Sync {
 		$run['sig_code']          = $sig_code;
 		$run['sig_stopword']      = $sig_stopword;
 		$run['sig_non_latin']     = $sig_non_latin;
+		$run['recent_findings']   = self::merge_recent_findings( isset( $run['recent_findings'] ) ? $run['recent_findings'] : array(), $batch_findings );
 		$run['updated_at']        = time();
 		$run['pause_after_batch'] = false;
 
@@ -2845,11 +3366,12 @@ class Slug_Sync {
 			echo '<p class="description">' . esc_html__( 'This is a preview. No slugs or URLs are being changed.', 'slug-sync' ) . '</p>';
 		}
 
-		if ( $log ) {
-			echo '<details class="slug-sync-batch-log"><summary>' . esc_html__( 'View items found in this batch', 'slug-sync' ) . '</summary><pre>';
-			echo esc_html( implode( "\n", $log ) );
-			echo '</pre></details>';
+
+		if ( ! $apply && ! $finished ) {
+			self::running_pro_teaser();
 		}
+
+		self::render_findings( $run, $batch_findings, $log );
 
 		echo '</div>';
 
@@ -2872,9 +3394,16 @@ class Slug_Sync {
 
 			self::upsell_card( $run );
 
+			$back_url = self::page_url();
+
+				if ( self::pro_preview_context( $run ) ) {
+					$back_url = add_query_arg( 'slug_sync_preview', $run_id, $back_url );
+					$back_url = wp_nonce_url( $back_url, 'slug_sync_preview' );
+				}
+
 			printf(
 				'<p><a class="button" href="%s">%s</a></p>',
-				esc_url( self::page_url() ),
+				esc_url( $back_url ),
 				esc_html__( 'Back', 'slug-sync' )
 			);
 
@@ -2896,18 +3425,18 @@ class Slug_Sync {
 	/**
 	 * Contextual note about what a rules add-on would change in this run.
 	 *
-	 * Rendered on the plugin's own screen, after a completed run, and only when
-	 * the run actually found something. Guideline 11 permits an upsell here; it
-	 * does not permit an admin notice, and there is deliberately none.
+	 * Rendered on the plugin's own screen after a completed product preview, or
+	 * after another content preview found a title Pro could help with. Guideline 11
+	 * permits an upsell here; it does not permit an admin notice, and there is
+	 * deliberately none. The examples are read-only explanations, not disabled
+	 * controls or paid code hidden inside Free.
 	 *
 	 * @param array $run Completed run record.
 	 */
 	private static function upsell_card( $run ) {
-		$code      = isset( $run['sig_code'] ) ? absint( $run['sig_code'] ) : 0;
-		$stopword  = isset( $run['sig_stopword'] ) ? absint( $run['sig_stopword'] ) : 0;
-		$non_latin = isset( $run['sig_non_latin'] ) ? absint( $run['sig_non_latin'] ) : 0;
+		$context = self::pro_preview_context( $run );
 
-		if ( ! $code && ! $stopword && ! $non_latin ) {
+		if ( ! $context ) {
 			return;
 		}
 
@@ -2917,36 +3446,267 @@ class Slug_Sync {
 
 		$lines = array();
 
-		if ( $code ) {
+		if ( $context['code'] ) {
 			/* translators: %d: number of titles. */
-			$lines[] = sprintf( _n( '%d title contains a product code or SKU.', '%d titles contain a product code or SKU.', $code, 'slug-sync' ), $code );
+			$lines[] = sprintf( _n( '%d title contains a product code or SKU.', '%d titles contain a product code or SKU.', $context['code'], 'slug-sync' ), $context['code'] );
 		}
-		if ( $non_latin ) {
+		if ( $context['non_latin'] ) {
 			/* translators: %d: number of titles. */
-			$lines[] = sprintf( _n( '%d title is written in a non-Latin script.', '%d titles are written in a non-Latin script.', $non_latin, 'slug-sync' ), $non_latin );
+			$lines[] = sprintf( _n( '%d title is written in a non-Latin script.', '%d titles are written in a non-Latin script.', $context['non_latin'], 'slug-sync' ), $context['non_latin'] );
 		}
-		if ( $stopword ) {
+		if ( $context['stopword'] ) {
 			/* translators: %d: number of titles. */
-			$lines[] = sprintf( _n( '%d title contains common filler words.', '%d titles contain common filler words.', $stopword, 'slug-sync' ), $stopword );
+			$lines[] = sprintf( _n( '%d title contains common filler words.', '%d titles contain common filler words.', $context['stopword'], 'slug-sync' ), $context['stopword'] );
 		}
 
-		echo '<div class="slug-sync-card"><h2>' . esc_html__( 'About these titles', 'slug-sync' ) . '</h2><ul>';
+		echo '<div class="slug-sync-card">';
+		echo '<p class="slug-sync-pro-status"><strong>' . esc_html__( 'Built and in final release checks.', 'slug-sync' ) . '</strong> ';
+		printf(
+			/* translators: %s: Pro price, for example $79.99. */
+			esc_html__( '%s once at launch, with no yearly renewal.', 'slug-sync' ),
+			esc_html( self::PRO_PRICE )
+		);
+		echo '</p>';
+		echo '<span class="slug-sync-eyebrow">' . esc_html__( 'Separate paid add-on', 'slug-sync' ) . '</span>';
+		echo '<h2>' . esc_html__( 'What Slug Sync Pro adds', 'slug-sync' ) . '</h2>';
 
-		foreach ( $lines as $line ) {
-			echo '<li>' . esc_html( $line ) . '</li>';
+		if ( $lines ) {
+			echo '<p><strong>' . esc_html__( 'What this preview noticed', 'slug-sync' ) . '</strong></p><ul>';
+
+			foreach ( $lines as $line ) {
+				echo '<li>' . esc_html( $line ) . '</li>';
+			}
+
+			echo '</ul>';
 		}
 
-		echo '</ul><p class="description">' .
-			esc_html__( 'Slug Sync builds each slug from the title exactly as WordPress would. Slug Sync Pro, a separate add-on still in development, adds rules that rewrite the title first, so codes and filler words never reach the URL and non-Latin titles are transliterated rather than percent-encoded. It also syncs category and tag slugs, which this plugin leaves alone.', 'slug-sync' ) .
-			'</p><p><a class="button" href="' . esc_url( 'https://slugsync.com/#pricing' ) . '" target="_blank" rel="noopener noreferrer">' .
-			esc_html(
-				sprintf(
-					/* translators: %s: Pro price, for example $79.99. */
-					__( 'Slug Sync Pro — coming soon, %s at launch', 'slug-sync' ),
-					self::PRO_PRICE
-				)
-			) .
+		echo '<p>' . esc_html__( 'Free completed this URL preview. Explore all ten Pro workflows below; nothing already included in Free is moved or limited.', 'slug-sync' ) . '</p>';
+		self::pro_feature_slider();
+		echo '<p><a class="button button-primary slug-sync-pro-cta" href="' . esc_url( 'https://slugsync.com/pro/' ) . '" target="_blank" rel="noopener noreferrer">' .
+			esc_html__( 'See Pro screens and every feature', 'slug-sync' ) .
 			'</a></p></div>';
+	}
+
+	/**
+	 * Render one icon copied from slugsync.com's current inline SVG system.
+	 *
+	 * @param string $name Icon name.
+	 */
+	private static function pro_feature_icon( $name ) {
+		$icons = array(
+			'wrench' => '<path d="M13.9 3.7a3.5 3.5 0 00-4.3 4.6l-5.5 5.5a1.7 1.7 0 002.4 2.4l5.5-5.5a3.5 3.5 0 004.6-4.3l-2.4 2.4-2.2-.5-.5-2.2z"/>',
+			'code'   => '<path d="M7 6l-4 4 4 4M13 6l4 4-4 4"/>',
+			'box'    => '<path d="M3.6 6.6L10 3.6l6.4 3v6.9L10 16.4l-6.4-2.9z"/><path d="M3.6 6.6L10 9.6l6.4-3"/><path d="M10 9.6v6.8"/>',
+			'link'   => '<path d="M8.5 11.5a3.5 3.5 0 005 0l2.5-2.5a3.5 3.5 0 00-5-5l-1 1"/><path d="M11.5 8.5a3.5 3.5 0 00-5 0L4 11a3.5 3.5 0 005 5l1-1"/>',
+			'tag'    => '<path d="M10.6 3.6H16v5.4l-6.9 6.9-5.4-5.4z"/><circle cx="13.2" cy="6.8" r="1.1"/>',
+			'layers' => '<path d="M10 2.5L17.5 7 10 11.5 2.5 7z"/><path d="M2.5 12L10 16.5 17.5 12"/>',
+			'off'    => '<circle cx="10" cy="10" r="7"/><path d="M5 15L15 5"/>',
+			'eye'    => '<path d="M1.8 10S4.7 4.6 10 4.6 18.2 10 18.2 10 15.3 15.4 10 15.4 1.8 10 1.8 10z"/><circle cx="10" cy="10" r="2.4"/>',
+		);
+
+		if ( ! isset( $icons[ $name ] ) ) {
+			return;
+		}
+
+		echo '<span class="slug-sync-pro-icon" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" focusable="false">' . $icons[ $name ] . '</svg></span>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- fixed, locally defined SVG geometry.
+	}
+
+	/**
+	 * Ten Pro capabilities mirrored from the current slugsync.com feature slider.
+	 */
+	private static function pro_feature_slider() {
+		$features = array(
+			array(
+				'icon'    => 'wrench',
+				'title'   => __( 'Remove unwanted text from URLs', 'slug-sync' ),
+				'body'    => __( 'Strip product codes or chosen filler words, replace text and shorten long names before the URL is built, while protecting model-led names.', 'slug-sync' ),
+				'example' => __( 'Wireless Mouse SKU 4823-BLK', 'slug-sync' ),
+				'result'  => '/product/wireless-mouse/',
+			),
+			array(
+				'icon'    => 'code',
+				'title'   => __( 'Make non-Latin names readable', 'slug-sync' ),
+				'body'    => __( 'Turn Cyrillic, Greek and Chinese names into readable Latin letters before WordPress creates the address.', 'slug-sync' ),
+				'example' => 'Кофеварка',
+				'result'  => 'kofevarka',
+			),
+			array(
+				'icon'    => 'box',
+				'title'   => __( 'Create URLs from product details', 'slug-sync' ),
+				'body'    => __( 'Choose details such as colour, size, material, weight or SKU, put them in any order and preview the finished address.', 'slug-sync' ),
+				'example' => '{title} {pa_colour} {pa_size}',
+				'result'  => '/product/cotton-shirt-black-large/',
+			),
+			array(
+				'icon'    => 'link',
+				'title'   => __( 'Use categories and tags in product URLs', 'slug-sync' ),
+				'body'    => __( 'Add assigned product categories and tags to the same URL template as the name, attributes, SKU, weight or dimensions.', 'slug-sync' ),
+				'example' => '{title} {product_cat} {product_tag}',
+				'result'  => '/product/wh-1000xm5-headphones-sony-wireless/',
+			),
+			array(
+				'icon'    => 'tag',
+				'title'   => __( 'Add categories and tags from product names', 'slug-sync' ),
+				'body'    => __( 'Use exact word or phrase rules to organise matching products without removing existing categories or tags.', 'slug-sync' ),
+				'example' => __( 'Sony WH-1000XM5 Headphones', 'slug-sync' ),
+				'result'  => __( 'Sony tag · Headphones category', 'slug-sync' ),
+			),
+			array(
+				'icon'    => 'layers',
+				'title'   => __( 'Add attributes and map name text to values', 'slug-sync' ),
+				'body'    => __( 'Choose the text to find, where to save it and the value to add. Existing values and visible names stay unchanged.', 'slug-sync' ),
+				'example' => __( 'Sony 55-inch TV', 'slug-sync' ),
+				'result'  => __( 'Brand: Sony · Category: Televisions', 'slug-sync' ),
+			),
+			array(
+				'icon'    => 'layers',
+				'title'   => __( 'Rename category, tag and attribute URLs safely', 'slug-sync' ),
+				'body'    => __( 'Preview and update term addresses in batches with saved progress, downloadable reports and Undo.', 'slug-sync' ),
+				'example' => '/category/winter-boots/',
+				'result'  => '/category/boots/',
+			),
+			array(
+				'icon'    => 'link',
+				'title'   => __( 'Redirect direct old category and tag links', 'slug-sync' ),
+				'body'    => __( 'Remember retired term addresses and redirect direct old links that WordPress reports as missing.', 'slug-sync' ),
+				'example' => '/category/winter-boots/',
+				'result'  => __( 'Permanent redirect', 'slug-sync' ),
+			),
+			array(
+				'icon'    => 'off',
+				'title'   => __( 'Clear saved pages after term changes', 'slug-sync' ),
+				'body'    => __( 'Clear supported WordPress page caches and, when connected, only the changed Cloudflare addresses.', 'slug-sync' ),
+				'example' => __( 'WP Rocket · LiteSpeed · W3TC', 'slug-sync' ),
+				'result'  => __( 'Cloudflare: changed URLs only', 'slug-sync' ),
+			),
+			array(
+				'icon'    => 'eye',
+				'title'   => __( 'Watch changed term links for 404 errors', 'slug-sync' ),
+				'body'    => __( 'For seven days, record a 404 when visitors reach one of up to 1,000 watched paths from the latest term update.', 'slug-sync' ),
+				'example' => '/category/winter-boots/',
+				'result'  => __( 'Seven-day 404 watch', 'slug-sync' ),
+			),
+		);
+		$total = count( $features );
+		?>
+		<div class="slug-sync-pro-slider">
+			<ul class="slug-sync-pro-grid" id="slug-sync-pro-slider" role="region" aria-roledescription="carousel" aria-label="<?php esc_attr_e( 'Slug Sync Pro features', 'slug-sync' ); ?>" tabindex="0">
+				<?php foreach ( $features as $index => $feature ) : ?>
+					<?php
+					$feature_position = sprintf(
+						/* translators: 1: current feature number, 2: total number of features. */
+						__( '%1$d of %2$d', 'slug-sync' ),
+						$index + 1,
+						$total
+					);
+					?>
+					<li role="group" aria-label="<?php echo esc_attr( $feature_position ); ?>">
+						<?php self::pro_feature_icon( $feature['icon'] ); ?>
+						<strong><?php echo esc_html( $feature['title'] ); ?></strong>
+						<p><?php echo esc_html( $feature['body'] ); ?></p>
+						<div class="slug-sync-pro-example"><code><?php echo esc_html( $feature['example'] ); ?></code><span class="arrow" aria-hidden="true">→</span><code><?php echo esc_html( $feature['result'] ); ?></code></div>
+					</li>
+				<?php endforeach; ?>
+			</ul>
+			<div class="slug-sync-pro-slider-controls" aria-label="<?php esc_attr_e( 'Pro feature slider controls', 'slug-sync' ); ?>">
+				<button class="button slug-sync-pro-slider-button slug-sync-pro-slider-prev" id="slug-sync-pro-prev" type="button" aria-label="<?php esc_attr_e( 'Previous Pro features', 'slug-sync' ); ?>" aria-controls="slug-sync-pro-slider" disabled><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3 10h13M11.5 5.5L17 10l-5.5 4.5"/></svg></button>
+				<span class="slug-sync-pro-slider-count" aria-live="polite"><span id="slug-sync-pro-current">1–4</span> <?php esc_html_e( 'of', 'slug-sync' ); ?> <span id="slug-sync-pro-total"><?php echo absint( $total ); ?></span></span>
+				<button class="button slug-sync-pro-slider-button" id="slug-sync-pro-next" type="button" aria-label="<?php esc_attr_e( 'Next Pro features', 'slug-sync' ); ?>" aria-controls="slug-sync-pro-slider"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3 10h13M11.5 5.5L17 10l-5.5 4.5"/></svg></button>
+			</div>
+		</div>
+		<script>
+		(function(){
+			var slider = document.getElementById('slug-sync-pro-slider');
+			var previous = document.getElementById('slug-sync-pro-prev');
+			var next = document.getElementById('slug-sync-pro-next');
+			var current = document.getElementById('slug-sync-pro-current');
+			var cards = slider ? slider.children : [];
+
+			if (!slider || !cards.length) { return; }
+
+			function metrics(){
+				var gap = parseFloat(window.getComputedStyle(slider).columnGap) || 0;
+				var step = cards[0].getBoundingClientRect().width + gap;
+				var visible = Math.max(1, Math.floor((slider.clientWidth + gap + 1) / step));
+				return {step: step, visible: visible};
+			}
+			function update(){
+				var size = metrics();
+				var start = Math.min(cards.length - 1, Math.max(0, Math.round(slider.scrollLeft / size.step)));
+				var end = Math.min(cards.length, start + size.visible);
+				current.textContent = (start + 1) + (end > start + 1 ? '–' + end : '');
+				previous.disabled = start === 0;
+				next.disabled = end >= cards.length;
+			}
+			function move(direction){
+				var size = metrics();
+				slider.scrollBy({left: direction * size.step * size.visible, behavior: 'smooth'});
+			}
+			previous.addEventListener('click', function(){ move(-1); });
+			next.addEventListener('click', function(){ move(1); });
+			slider.addEventListener('scroll', update, {passive: true});
+			window.addEventListener('resize', update);
+			update();
+		})();
+		</script>
+		<?php
+	}
+
+	/**
+	 * Decide whether a completed run has a useful, contextual Pro explanation.
+	 *
+	 * Product previews always qualify because Pro's catalogue organiser and URL
+	 * templates solve product problems the three title signals cannot detect. A
+	 * non-product preview qualifies only when its titles expose a relevant rule.
+	 * Kept pure so the commercial surface cannot quietly expand without a test.
+	 *
+	 * @param array $run Completed run record.
+	 * @return array<string,int|bool>|array{}
+	 */
+	private static function pro_preview_context( $run ) {
+		$context = array(
+			'preview'   => isset( $run['mode'] ) && 'dry' === $run['mode'],
+			'product'   => isset( $run['post_type'] ) && 'product' === $run['post_type'],
+			'code'      => isset( $run['sig_code'] ) ? absint( $run['sig_code'] ) : 0,
+			'stopword'  => isset( $run['sig_stopword'] ) ? absint( $run['sig_stopword'] ) : 0,
+			'non_latin' => isset( $run['sig_non_latin'] ) ? absint( $run['sig_non_latin'] ) : 0,
+		);
+
+		if ( ! $context['preview'] || ( ! $context['product'] && ! $context['code'] && ! $context['stopword'] && ! $context['non_latin'] ) ) {
+			return array();
+		}
+
+		return $context;
+	}
+
+	/**
+	 * Recover the completed preview named by the result screen's Back link.
+	 *
+	 * The run ID is carried in the URL rather than stored as global UI state, so
+	 * an ordinary visit to the tool stays uncluttered and only the preview the
+	 * administrator just reviewed follows them back above Step 1.
+	 *
+	 * @return array<string,mixed>|null
+	 */
+	private static function returned_preview() {
+		if ( ! isset( $_GET['slug_sync_preview'], $_GET['_wpnonce'] ) ) {
+			return null;
+		}
+
+		$nonce = sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) );
+
+		if ( ! wp_verify_nonce( $nonce, 'slug_sync_preview' ) ) {
+			return null;
+		}
+
+		$run_id = sanitize_key( wp_unslash( $_GET['slug_sync_preview'] ) );
+		$run    = self::get_run( $run_id );
+
+		if ( ! $run || ! isset( $run['status'] ) || 'completed' !== $run['status'] || ! self::pro_preview_context( $run ) ) {
+			return null;
+		}
+
+		return $run;
 	}
 
 	/**
