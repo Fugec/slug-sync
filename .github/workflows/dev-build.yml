@@ -33,7 +33,7 @@ jobs:
         php: ['7.4', '8.4']
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
@@ -53,7 +53,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # build.sh cross-checks the plugin header, SLUG_SYNC_VERSION and the
       # readme's Stable tag, so a half-finished version bump fails here rather
