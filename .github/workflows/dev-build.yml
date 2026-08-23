@@ -26,7 +26,30 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  quality:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        php: ['7.4', '8.4']
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          tools: composer:v2
+          coverage: none
+      - name: Install test dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist
+      - name: Validate development metadata
+        run: composer validate --strict --no-check-publish
+      - name: Run unit and regression tests
+        run: vendor/bin/phpunit
+      - name: Check PHP syntax
+        run: find . -path ./vendor -prune -o -name '*.php' -print0 | xargs -0 -n1 php -l
+
   build:
+    needs: quality
     runs-on: ubuntu-latest
 
     steps:

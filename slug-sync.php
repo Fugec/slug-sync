@@ -69,9 +69,14 @@ class Slug_Sync {
 	const PRO_PRICE = '$79.99';
 
 	/**
-	 * In-request slug claims for a preview run, keyed by run ID then by slug.
+	 * In-request virtual slug transitions for a preview run, keyed by run ID.
 	 *
-	 * @var array<string,array<string,int>>
+	 * Each run contains a post map and an occupied-slug index. Keeping the post
+	 * map is what lets a preview treat an old slug as released after an earlier
+	 * row moves away from it; keeping the index avoids scanning the whole run for
+	 * every collision check.
+	 *
+	 * @var array<string,array{posts:array<int,array<string,mixed>>,occupied:array<string,array<string,array<int,bool>>>,report_size:int}>
 	 */
 	private static $claims = array();
 
@@ -256,10 +261,11 @@ class Slug_Sync {
 	 * Store one run record.
 	 *
 	 * @param array<string,mixed> $run Run record.
+	 * @return bool Whether WordPress persisted the new record.
 	 */
 	private static function save_run( $run ) {
 		if ( empty( $run['id'] ) ) {
-			return;
+			return false;
 		}
 
 		$run_id = sanitize_key( $run['id'] );
@@ -267,7 +273,7 @@ class Slug_Sync {
 
 		$run['id']       = $run_id;
 		$runs[ $run_id ] = $run;
-		update_option( self::RUNS_OPT, $runs, false );
+		return (bool) update_option( self::RUNS_OPT, $runs, false );
 	}
 
 	/**
@@ -300,7 +306,7 @@ class Slug_Sync {
 				continue;
 			}
 
-			foreach ( array( 'changes', 'redirects' ) as $report ) {
+			foreach ( array( 'changes', 'redirects', 'journal' ) as $report ) {
 				$path = self::report_path( $run_id, $report );
 
 				if ( $path && is_file( $path ) ) {
@@ -406,7 +412,10 @@ class Slug_Sync {
 			return null;
 		}
 
-		self::save_run( $run );
+		if ( ! self::save_run( $run ) ) {
+			self::clear_active_run( $run_id );
+			return null;
+		}
 		self::prune_runs( $run_id );
 
 		return $run;
@@ -570,6 +579,32 @@ class Slug_Sync {
 	}
 
 	/**
+	 * Empty virtual-slug state for one preview run.
+	 *
+	 * @return array{posts:array<int,array<string,mixed>>,occupied:array<string,array<string,array<int,bool>>>,report_size:int}
+	 */
+	private static function empty_claims() {
+		return array(
+			'posts'       => array(),
+			'occupied'    => array(),
+			'report_size' => 0,
+		);
+	}
+
+	/**
+	 * Whether stored claim data uses the current virtual-transition shape.
+	 *
+	 * @param mixed $claims Stored value.
+	 * @return bool
+	 */
+	private static function claims_are_valid( $claims ) {
+		return is_array( $claims )
+			&& isset( $claims['posts'], $claims['occupied'], $claims['report_size'] )
+			&& is_array( $claims['posts'] )
+			&& is_array( $claims['occupied'] );
+	}
+
+	/**
 	 * Load a run's claims into the request, reading the transient at most once.
 	 *
 	 * @param string $run_id Run ID.
@@ -579,8 +614,71 @@ class Slug_Sync {
 
 		if ( ! isset( self::$claims[ $key ] ) ) {
 			$claimed              = get_transient( self::claim_key( $run_id ) );
-			self::$claims[ $key ] = is_array( $claimed ) ? $claimed : array();
+			self::$claims[ $key ] = self::claims_are_valid( $claimed ) ? $claimed : self::empty_claims();
 		}
+	}
+
+	/**
+	 * Collision namespace used by WordPress for a post slug.
+	 *
+	 * Attachments are global, hierarchical types are scoped to a parent, and
+	 * flat types are scoped to their post type.
+	 *
+	 * @param string $post_type Post type.
+	 * @param int    $parent    Parent post ID.
+	 * @return string
+	 */
+	private static function claim_namespace( $post_type, $parent ) {
+		if ( 'attachment' === $post_type ) {
+			return 'attachment';
+		}
+
+		if ( is_post_type_hierarchical( $post_type ) ) {
+			return 'hier:' . $post_type . ':' . absint( $parent );
+		}
+
+		return 'flat:' . $post_type;
+	}
+
+	/**
+	 * Record how one post would move during a preview.
+	 *
+	 * @param string $run_id    Run ID.
+	 * @param int    $post_id   Post ID.
+	 * @param string $old_slug  Current slug in the database.
+	 * @param string $new_slug  Simulated new slug.
+	 * @param string $status    Post status.
+	 * @param string $post_type Post type.
+	 * @param int    $parent    Parent post ID.
+	 */
+	private static function remember_claim( $run_id, $post_id, $old_slug, $new_slug, $status, $post_type, $parent ) {
+		self::load_claims( $run_id );
+
+		$key       = sanitize_key( $run_id );
+		$post_id   = absint( $post_id );
+		$namespace = self::claim_namespace( $post_type, $parent );
+		$state     = &self::$claims[ $key ];
+
+		if ( isset( $state['posts'][ $post_id ] ) ) {
+			$previous = $state['posts'][ $post_id ];
+			$old_ns   = isset( $previous['namespace'] ) ? $previous['namespace'] : '';
+			$old_new  = isset( $previous['new_slug'] ) ? $previous['new_slug'] : '';
+
+			if ( isset( $state['occupied'][ $old_ns ][ $old_new ][ $post_id ] ) ) {
+				unset( $state['occupied'][ $old_ns ][ $old_new ][ $post_id ] );
+			}
+		}
+
+		$state['posts'][ $post_id ] = array(
+			'old_slug'  => (string) $old_slug,
+			'new_slug'  => (string) $new_slug,
+			'status'    => (string) $status,
+			'post_type' => (string) $post_type,
+			'parent'    => absint( $parent ),
+			'namespace' => $namespace,
+		);
+		$state['occupied'][ $namespace ][ $new_slug ][ $post_id ] = true;
+		self::$claims_dirty[ $key ] = true;
 	}
 
 	/**
@@ -594,14 +692,17 @@ class Slug_Sync {
 	 * nothing outside this request reads the map until the next batch starts.
 	 *
 	 * @param string $run_id Run ID.
+	 * @param string $file   Changes report path.
 	 */
-	private static function flush_claims( $run_id ) {
+	private static function flush_claims( $run_id, $file ) {
 		$key = sanitize_key( $run_id );
 
 		if ( empty( self::$claims_dirty[ $key ] ) ) {
 			return;
 		}
 
+		clearstatcache( true, $file );
+		self::$claims[ $key ]['report_size'] = is_file( $file ) ? (int) filesize( $file ) : 0;
 		set_transient( self::claim_key( $run_id ), self::$claims[ $key ], 7 * DAY_IN_SECONDS );
 		unset( self::$claims_dirty[ $key ] );
 	}
@@ -629,7 +730,13 @@ class Slug_Sync {
 		$key       = sanitize_key( $run_id );
 		$claim_key = self::claim_key( $run_id );
 
-		if ( isset( self::$claims[ $key ] ) || false !== get_transient( $claim_key ) || ! is_readable( $file ) ) {
+		$stored      = get_transient( $claim_key );
+		$report_size = is_file( $file ) ? (int) filesize( $file ) : 0;
+
+		if ( isset( self::$claims[ $key ] ) || ( self::claims_are_valid( $stored ) && (int) $stored['report_size'] === $report_size ) || ! is_readable( $file ) ) {
+			if ( ! isset( self::$claims[ $key ] ) && self::claims_are_valid( $stored ) && (int) $stored['report_size'] === $report_size ) {
+				self::$claims[ $key ] = $stored;
+			}
 			return;
 		}
 
@@ -639,19 +746,23 @@ class Slug_Sync {
 			return;
 		}
 
-		$claimed = array();
+		self::$claims[ $key ] = self::empty_claims();
 		fgetcsv( $handle, 0, ',', '"', '' ); // Header row.
 
 		while ( ( $row = fgetcsv( $handle, 0, ',', '"', '' ) ) !== false ) {
 			if ( count( $row ) >= 6 ) {
-				$claimed[ $row[5] ] = absint( $row[0] );
+				$post_id = absint( $row[0] );
+				$parent  = isset( $row[9] ) ? absint( $row[9] ) : absint( get_post_field( 'post_parent', $post_id ) );
+
+				self::remember_claim( $run_id, $post_id, $row[4], $row[5], $row[2], $row[1], $parent );
 			}
 		}
 
 		fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
 
-		self::$claims[ $key ] = $claimed;
-		set_transient( $claim_key, $claimed, 7 * DAY_IN_SECONDS );
+		self::$claims[ $key ]['report_size'] = $report_size;
+		set_transient( $claim_key, self::$claims[ $key ], 7 * DAY_IN_SECONDS );
+		unset( self::$claims_dirty[ $key ] );
 	}
 
 	/* ------------------------------------------------------------- reports */
@@ -722,6 +833,7 @@ class Slug_Sync {
 		$prefixes = array(
 			'changes'   => 'slug-changes',
 			'redirects' => 'slug-redirects',
+			'journal'   => 'slug-journal',
 		);
 
 		if ( ! isset( $prefixes[ $report ] ) ) {
@@ -836,6 +948,139 @@ class Slug_Sync {
 		return $value;
 	}
 
+	/**
+	 * Append and flush one CSV row before any dependent state is changed.
+	 *
+	 * @param resource $handle Open file handle.
+	 * @param array    $row    CSV fields.
+	 * @return bool
+	 */
+	private static function write_csv_row( $handle, $row ) {
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fputcsv
+		$written = fputcsv( $handle, $row, ',', '"', '' );
+
+		if ( false === $written ) {
+			return false;
+		}
+
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fflush
+		return fflush( $handle );
+	}
+
+	/**
+	 * Read a changes or journal CSV into a map keyed by post ID.
+	 *
+	 * A repeated journal entry supersedes the earlier plan for the same post.
+	 *
+	 * @param string $file Report path.
+	 * @return array<int,array<int,string>>
+	 */
+	private static function report_rows_by_id( $file ) {
+		if ( ! is_readable( $file ) ) {
+			return array();
+		}
+
+		$handle = fopen( $file, 'r' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
+
+		if ( ! $handle ) {
+			return array();
+		}
+
+		$rows = array();
+		fgetcsv( $handle, 0, ',', '"', '' ); // Header row.
+
+		while ( ( $row = fgetcsv( $handle, 0, ',', '"', '' ) ) !== false ) {
+			if ( count( $row ) >= 9 && absint( $row[0] ) ) {
+				$rows[ absint( $row[0] ) ] = $row;
+			}
+		}
+
+		fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+
+		return $rows;
+	}
+
+	/**
+	 * Build one durable changes/journal row.
+	 *
+	 * The parent is appended so the first nine columns remain compatible with
+	 * reports created before hierarchical preview claims were parent-scoped.
+	 *
+	 * @param object $post     Database row.
+	 * @param string $post_type Post type.
+	 * @param string $old_slug Old slug.
+	 * @param string $new_slug New slug.
+	 * @param string $old_url  Old URL.
+	 * @param string $new_url  New URL.
+	 * @param string $note     Report note.
+	 * @return array<int,mixed>
+	 */
+	private static function change_row( $post, $post_type, $old_slug, $new_slug, $old_url, $new_url, $note ) {
+		return array(
+			$post->ID,
+			$post_type,
+			$post->post_status,
+			self::csv_text( $post->post_title ),
+			$old_slug,
+			$new_slug,
+			$old_url,
+			$new_url,
+			$note,
+			absint( $post->post_parent ),
+		);
+	}
+
+	/**
+	 * Rebuild the import-ready redirect file from committed change rows.
+	 *
+	 * This removes duplicates left by an interrupted append and guarantees the
+	 * final redirect map contains exactly the rows that have an Undo record.
+	 *
+	 * @param string $changes_path Changes report path.
+	 * @param string $redirect_path Redirect report path.
+	 * @return bool
+	 */
+	private static function rebuild_redirect_report( $changes_path, $redirect_path ) {
+		$rows = self::report_rows_by_id( $changes_path );
+		// Keep the temporary artifact within the uninstall cleanup glob even if PHP
+		// exits between writing and the atomic rename.
+		$temp = $redirect_path . '.tmp-' . strtolower( wp_generate_password( 8, false, false ) ) . '.csv';
+		$handle = fopen( $temp, 'w' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
+
+		if ( ! $handle ) {
+			return false;
+		}
+
+		$ok = true;
+
+		foreach ( $rows as $row ) {
+			if ( 'publish' === $row[2] ) {
+				$ok = self::write_csv_row(
+					$handle,
+					array( wp_make_link_relative( $row[6] ), wp_make_link_relative( $row[7] ) )
+				);
+
+				if ( ! $ok ) {
+					break;
+				}
+			}
+		}
+
+		fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename
+		if ( $ok && rename( $temp, $redirect_path ) ) {
+			return true;
+		}
+
+		if ( is_file( $temp ) ) {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
+			unlink( $temp );
+		}
+
+		return false;
+	}
+
 	/* ---------------------------------------------------------- slug logic */
 
 	/**
@@ -915,10 +1160,10 @@ class Slug_Sync {
 	/**
 	 * Resolve the slug a post should end up with.
 	 *
-	 * A preview writes nothing, so wp_unique_post_slug() cannot see slugs claimed
-	 * earlier in the same run. Two posts sharing a title would both preview the
-	 * same slug and the redirect map would be wrong. Claims are tracked in a
-	 * transient so the preview matches what applying will actually produce.
+	 * A preview writes nothing, so wp_unique_post_slug() cannot see slugs occupied
+	 * or released earlier in the simulated run. The preview implementation below
+	 * mirrors WordPress's namespaces and reserved-slug checks against a virtual
+	 * view of those earlier transitions.
 	 *
 	 * @param string $slug      Desired slug.
 	 * @param int    $post_id   Post ID.
@@ -927,33 +1172,200 @@ class Slug_Sync {
 	 * @param int    $parent    Parent ID.
 	 * @param bool   $simulate  True while previewing.
 	 * @param string $run_id    Run ID used to isolate preview claims.
+	 * @param string $old_slug  Current database slug.
 	 * @return string
 	 */
-	private static function claim( $slug, $post_id, $status, $post_type, $parent, $simulate, $run_id ) {
-		$unique = wp_unique_post_slug( $slug, $post_id, $status, $post_type, $parent );
-
+	private static function claim( $slug, $post_id, $status, $post_type, $parent, $simulate, $run_id, $old_slug = '' ) {
 		if ( ! $simulate ) {
-			return $unique;
+			return wp_unique_post_slug( $slug, $post_id, $status, $post_type, $parent );
 		}
+
+		$unique = self::preview_unique_post_slug( $slug, $post_id, $status, $post_type, $parent, $run_id );
+		self::remember_claim( $run_id, $post_id, $old_slug, $unique, $status, $post_type, $parent );
+
+		return $unique;
+	}
+
+	/**
+	 * Whether a slug is occupied in the database as it would look after all
+	 * earlier previewed transitions had been applied.
+	 *
+	 * @param string $slug      Candidate slug.
+	 * @param int    $post_id   Post ID being checked.
+	 * @param string $post_type Post type.
+	 * @param int    $parent    Parent post ID.
+	 * @param string $run_id    Preview run ID.
+	 * @return bool
+	 */
+	private static function virtual_slug_is_taken( $slug, $post_id, $post_type, $parent, $run_id ) {
+		global $wpdb;
 
 		self::load_claims( $run_id );
 
-		$key     = sanitize_key( $run_id );
-		$claimed = &self::$claims[ $key ];
+		$key       = sanitize_key( $run_id );
+		$post_id   = absint( $post_id );
+		$namespace = self::claim_namespace( $post_type, $parent );
+		$state     = self::$claims[ $key ];
+		$occupied  = isset( $state['occupied'][ $namespace ][ $slug ] ) ? $state['occupied'][ $namespace ][ $slug ] : array();
 
-		$try = $unique;
-		$n   = 1;
-
-		while ( isset( $claimed[ $try ] ) && $claimed[ $try ] !== $post_id ) {
-			$n++;
-			$try = wp_unique_post_slug( $unique . '-' . $n, $post_id, $status, $post_type, $parent );
+		foreach ( array_keys( $occupied ) as $claimed_id ) {
+			if ( (int) $claimed_id !== $post_id ) {
+				return true;
+			}
 		}
 
-		// Held in memory and written back once per batch by flush_claims().
-		$claimed[ $try ]            = $post_id;
-		self::$claims_dirty[ $key ] = true;
+		if ( 'attachment' === $post_type ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$ids = $wpdb->get_col(
+				$wpdb->prepare(
+					"SELECT ID FROM {$wpdb->posts} WHERE post_name = %s AND ID != %d",
+					$slug,
+					$post_id
+				)
+			);
+		} elseif ( is_post_type_hierarchical( $post_type ) ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$ids = $wpdb->get_col(
+				$wpdb->prepare(
+					"SELECT ID FROM {$wpdb->posts} WHERE post_name = %s AND post_type IN ( %s, 'attachment' ) AND ID != %d AND post_parent = %d",
+					$slug,
+					$post_type,
+					$post_id,
+					absint( $parent )
+				)
+			);
+		} else {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$ids = $wpdb->get_col(
+				$wpdb->prepare(
+					"SELECT ID FROM {$wpdb->posts} WHERE post_name = %s AND post_type = %s AND ID != %d",
+					$slug,
+					$post_type,
+					$post_id
+				)
+			);
+		}
 
-		return $try;
+		foreach ( (array) $ids as $found_id ) {
+			$found_id = absint( $found_id );
+
+			if ( isset( $state['posts'][ $found_id ] ) ) {
+				// The row still has its old slug in the real database. In the virtual
+				// catalogue it only collides when its simulated new slug is this one.
+				if ( $state['posts'][ $found_id ]['new_slug'] === $slug ) {
+					return true;
+				}
+				continue;
+			}
+
+			return true;
+		}
+
+		return false;
+	}
+
+	/**
+	 * Preview equivalent of wp_unique_post_slug().
+	 *
+	 * This follows the WordPress 5.6+ algorithm and its public filters, replacing
+	 * only the database collision lookup with virtual_slug_is_taken().
+	 *
+	 * @param string $slug        Desired slug.
+	 * @param int    $post_id     Post ID.
+	 * @param string $post_status Post status.
+	 * @param string $post_type   Post type.
+	 * @param int    $post_parent Parent post ID.
+	 * @param string $run_id      Preview run ID.
+	 * @return string
+	 */
+	private static function preview_unique_post_slug( $slug, $post_id, $post_status, $post_type, $post_parent, $run_id ) {
+		global $wp_rewrite;
+
+		if ( in_array( $post_status, array( 'draft', 'pending', 'auto-draft' ), true )
+			|| ( 'inherit' === $post_status && 'revision' === $post_type )
+			|| 'user_request' === $post_type
+		) {
+			return $slug;
+		}
+
+		/** This filter is documented in wp-includes/post.php. */
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Mirrors the WordPress core uniqueness filter.
+		$override_slug = apply_filters( 'pre_wp_unique_post_slug', null, $slug, $post_id, $post_status, $post_type, $post_parent );
+
+		if ( null !== $override_slug ) {
+			return $override_slug;
+		}
+
+		$original_slug = $slug;
+		$feeds         = isset( $wp_rewrite->feeds ) && is_array( $wp_rewrite->feeds ) ? $wp_rewrite->feeds : array();
+		$needs_suffix  = false;
+
+		if ( 'attachment' === $post_type ) {
+			/** This filter is documented in wp-includes/post.php. */
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Mirrors the WordPress core uniqueness filter.
+			$is_bad_slug = apply_filters( 'wp_unique_post_slug_is_bad_attachment_slug', false, $slug );
+			$needs_suffix = self::virtual_slug_is_taken( $slug, $post_id, $post_type, $post_parent, $run_id )
+				|| in_array( $slug, $feeds, true )
+				|| 'embed' === $slug
+				|| $is_bad_slug;
+		} elseif ( is_post_type_hierarchical( $post_type ) ) {
+			if ( 'nav_menu_item' === $post_type ) {
+				return $slug;
+			}
+
+			/** This filter is documented in wp-includes/post.php. */
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Mirrors the WordPress core uniqueness filter.
+			$is_bad_slug = apply_filters( 'wp_unique_post_slug_is_bad_hierarchical_slug', false, $slug, $post_type, $post_parent );
+			$pagination  = isset( $wp_rewrite->pagination_base ) ? $wp_rewrite->pagination_base : 'page';
+			$needs_suffix = self::virtual_slug_is_taken( $slug, $post_id, $post_type, $post_parent, $run_id )
+				|| in_array( $slug, $feeds, true )
+				|| 'embed' === $slug
+				|| preg_match( '@^(' . preg_quote( $pagination, '@' ) . ')?\d+$@', $slug )
+				|| $is_bad_slug;
+		} else {
+			$post                        = get_post( $post_id );
+			$conflicts_with_date_archive = false;
+
+			if ( 'post' === $post_type && ( ! $post || $post->post_name !== $slug ) && preg_match( '/^[0-9]+$/', $slug ) ) {
+				$slug_num = (int) $slug;
+
+				if ( $slug_num ) {
+					$permastructs   = array_values( array_filter( explode( '/', get_option( 'permalink_structure' ) ) ) );
+					$postname_index = array_search( '%postname%', $permastructs, true );
+
+					if ( 0 === $postname_index
+						|| ( $postname_index && '%year%' === $permastructs[ $postname_index - 1 ] && 13 > $slug_num )
+						|| ( $postname_index && '%monthnum%' === $permastructs[ $postname_index - 1 ] && 32 > $slug_num )
+					) {
+						$conflicts_with_date_archive = true;
+					}
+				}
+			}
+
+			/** This filter is documented in wp-includes/post.php. */
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Mirrors the WordPress core uniqueness filter.
+			$is_bad_slug = apply_filters( 'wp_unique_post_slug_is_bad_flat_slug', false, $slug, $post_type );
+			$needs_suffix = self::virtual_slug_is_taken( $slug, $post_id, $post_type, $post_parent, $run_id )
+				|| in_array( $slug, $feeds, true )
+				|| 'embed' === $slug
+				|| $conflicts_with_date_archive
+				|| $is_bad_slug;
+		}
+
+		if ( $needs_suffix ) {
+			$suffix = 2;
+
+			do {
+				$alt_slug = _truncate_post_slug( $slug, 200 - ( strlen( $suffix ) + 1 ) ) . '-' . $suffix;
+				$suffix++;
+			} while ( self::virtual_slug_is_taken( $alt_slug, $post_id, $post_type, $post_parent, $run_id ) );
+
+			$slug = $alt_slug;
+		}
+
+		/** This filter is documented in wp-includes/post.php. */
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Mirrors the WordPress core uniqueness filter.
+		return apply_filters( 'wp_unique_post_slug', $slug, $post_id, $post_status, $post_type, $post_parent, $original_slug );
 	}
 
 	/**
@@ -1020,6 +1432,11 @@ class Slug_Sync {
 			}
 
 			clean_post_cache( $post_id );
+			$saved_slug = (string) get_post_field( 'post_name', $post_id );
+
+			/** This action is documented below on the quiet-write path. */
+			do_action( 'slug_sync_slug_updated', $post_id, $saved_slug ? $saved_slug : $new_slug );
+
 			return true;
 		}
 
@@ -2016,14 +2433,18 @@ class Slug_Sync {
 			? array( 'publish', 'draft', 'pending', 'private' )
 			: array( 'publish' );
 
-		$batch    = self::batch_size();
-		$is_first = ( 0 === $last_id );
-		$changes_path = self::report_path( $run_id, 'changes' );
+		$batch         = self::batch_size();
+		$is_first      = ( 0 === $last_id );
+		$changes_path  = self::report_path( $run_id, 'changes' );
 		$redirect_path = self::report_path( $run_id, 'redirects' );
+		$journal_path  = self::report_path( $run_id, 'journal' );
 
 		if ( $is_first ) {
 			delete_transient( self::CLAIM_KEY ); // Clean up the older global claim transient.
-			self::reset_claims( $run_id );
+
+			if ( ! is_file( $changes_path ) || 0 === (int) filesize( $changes_path ) ) {
+				self::reset_claims( $run_id );
+			}
 		} elseif ( ! is_file( $changes_path ) || ! is_file( $redirect_path ) ) {
 			$run['status']     = 'paused';
 			$run['updated_at'] = time();
@@ -2035,7 +2456,7 @@ class Slug_Sync {
 			return;
 		}
 
-		if ( ! $apply && ! $is_first ) {
+		if ( ! $apply && is_file( $changes_path ) && (int) filesize( $changes_path ) > 0 ) {
 			self::restore_claims( $run_id, $changes_path );
 		}
 
@@ -2046,12 +2467,14 @@ class Slug_Sync {
 		$placeholders = implode( ', ', array_fill( 0, count( $statuses ), '%s' ) );
 
 		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, PluginCheck.Security.DirectDB.UnescapedDBParameter
-		$total = (int) $wpdb->get_var(
+		$total_result = $wpdb->get_var(
 			$wpdb->prepare(
 				"SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type = %s AND post_status IN ($placeholders)",
 				array_merge( array( $post_type ), $statuses )
 			)
 		);
+		$total = (int) $total_result;
+		$count_error = $wpdb->last_error;
 
 		// Keyset pagination. OFFSET drifts if a post is added or removed mid-run.
 		$rows = $wpdb->get_results(
@@ -2064,7 +2487,20 @@ class Slug_Sync {
 				array_merge( array( $post_type ), $statuses, array( $last_id, $batch ) )
 			)
 		);
+		$rows_error = $wpdb->last_error;
 		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, PluginCheck.Security.DirectDB.UnescapedDBParameter
+
+		if ( $count_error || $rows_error || ! is_array( $rows ) ) {
+			$run['status']     = 'paused';
+			$run['updated_at'] = time();
+			$run['errors']     = $errors + 1;
+			self::save_run( $run );
+			self::release_lock( $lock_token );
+			echo '<div class="notice notice-error"><p>' .
+				esc_html__( 'WordPress could not read the selected content from the database. The run was paused without advancing; fix the database error, then resume.', 'slug-sync' ) .
+				'</p></div>';
+			return;
+		}
 
 		// Those rows came straight from $wpdb, so none of them are in the post
 		// cache. get_permalink() and the _wp_old_slug lookups below would each
@@ -2074,16 +2510,22 @@ class Slug_Sync {
 			_prime_post_caches( wp_list_pluck( $rows, 'ID' ), true, true );
 		}
 
-		$mode    = $is_first ? 'w' : 'a';
-		$changes_handle = fopen( $changes_path, $mode ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
-		$redirect_handle = fopen( $redirect_path, $mode ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
+		// Append even when last_id is zero. A request can die after writing some
+		// slugs but before the batch checkpoint is saved; truncating here would
+		// erase the only Undo record for those successful writes.
+		$changes_handle  = fopen( $changes_path, 'a+' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
+		$redirect_handle = fopen( $redirect_path, 'a+' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
+		$journal_handle  = fopen( $journal_path, 'a+' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
 
-		if ( ! $changes_handle || ! $redirect_handle ) {
+		if ( ! $changes_handle || ! $redirect_handle || ! $journal_handle ) {
 			if ( $changes_handle ) {
 				fclose( $changes_handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
 			}
 			if ( $redirect_handle ) {
 				fclose( $redirect_handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+			}
+			if ( $journal_handle ) {
+				fclose( $journal_handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
 			}
 
 			$run['status']     = 'paused';
@@ -2097,18 +2539,44 @@ class Slug_Sync {
 			return;
 		}
 
-		if ( $is_first ) {
+		$changes_stat = fstat( $changes_handle );
+		$journal_stat = fstat( $journal_handle );
+		$header       = array( 'id', 'post_type', 'status', 'title', 'old_slug', 'new_slug', 'old_url', 'new_url', 'note', 'post_parent' );
+		$headers_ok   = true;
+
+		if ( empty( $changes_stat['size'] ) ) {
 			// BOM so spreadsheet software reads accented characters correctly.
-			fwrite( $changes_handle, "\xEF\xBB\xBF" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite
-			fputcsv( $changes_handle, array( 'id', 'post_type', 'status', 'title', 'old_slug', 'new_slug', 'old_url', 'new_url', 'note' ), ',', '"', '' );
-			// No BOM and no header on the redirect file: some redirect plugins
-			// import a header row as a live redirect.
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite
+			$headers_ok = false !== fwrite( $changes_handle, "\xEF\xBB\xBF" ) && self::write_csv_row( $changes_handle, $header );
 		}
+
+		if ( $headers_ok && empty( $journal_stat['size'] ) ) {
+			$headers_ok = self::write_csv_row( $journal_handle, $header );
+		}
+
+		if ( ! $headers_ok ) {
+			fclose( $changes_handle );  // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+			fclose( $redirect_handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+			fclose( $journal_handle );  // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+			$run['status']     = 'paused';
+			$run['updated_at'] = time();
+			$run['errors']     = $errors + 1;
+			self::save_run( $run );
+			self::release_lock( $lock_token );
+			echo '<div class="notice notice-error"><p>' .
+				esc_html__( 'The report headers could not be written. The run was paused without changing anything; check available disk space and uploads permissions, then resume.', 'slug-sync' ) .
+				'</p></div>';
+			return;
+		}
+
+		$reported_rows = self::report_rows_by_id( $changes_path );
+		$journal_rows  = self::report_rows_by_id( $journal_path );
 
 		$log           = array();
 		$next_last     = $last_id;
 		$batch_changed = 0;
 		$batch_errors  = 0;
+		$report_failed = false;
 
 		foreach ( $rows as $row ) {
 
@@ -2125,6 +2593,65 @@ class Slug_Sync {
 			}
 			if ( $signals['non_latin'] ) {
 				$sig_non_latin++;
+			}
+
+			$post_id = (int) $row->ID;
+
+			// A committed changes row is the per-item checkpoint. If the request
+			// died before the batch option was saved, count it again but never write
+			// or report it twice.
+			if ( isset( $reported_rows[ $post_id ] ) ) {
+				$batch_changed++;
+				continue;
+			}
+
+			if ( isset( $journal_rows[ $post_id ] ) ) {
+				$planned = $journal_rows[ $post_id ];
+
+				if ( ! $apply ) {
+					$parent = isset( $planned[9] ) ? absint( $planned[9] ) : absint( $row->post_parent );
+					self::remember_claim( $run_id, $post_id, $planned[4], $planned[5], $planned[2], $planned[1], $parent );
+				} elseif ( $row->post_name !== $planned[5] && $row->post_name !== $planned[4] ) {
+					if ( ! $quiet ) {
+						// A standard WordPress save may legitimately adjust the requested
+						// slug through a hook. The write-ahead row proves this request had
+						// started the item, so preserve the actual result for Undo.
+						$planned[5] = $row->post_name;
+						$planned[7] = get_permalink( $post_id );
+						$planned[8] = $planned[8] ? $planned[8] . '; ' : '';
+						$planned[8] .= __( 'slug adjusted during WordPress save', 'slug-sync' );
+
+						if ( ! self::write_csv_row( $journal_handle, $planned ) ) {
+							$report_failed = true;
+							break;
+						}
+					} else {
+						/* translators: 1: post ID, 2: current slug. */
+						$log[] = sprintf( __( '#%1$d skipped after interruption because its slug is now "%2$s"', 'slug-sync' ), $post_id, $row->post_name );
+						$batch_errors++;
+						continue;
+					}
+				} elseif ( $row->post_name === $planned[4] ) {
+					// The journal was flushed but the database write did not happen.
+					// Recalculate below against the current database before retrying it.
+					$planned = null;
+				}
+
+				if ( $planned ) {
+					if ( 'publish' === $planned[2] && ! self::write_csv_row( $redirect_handle, array( wp_make_link_relative( $planned[6] ), wp_make_link_relative( $planned[7] ) ) ) ) {
+						$report_failed = true;
+						break;
+					}
+
+					if ( ! self::write_csv_row( $changes_handle, $planned ) ) {
+						$report_failed = true;
+						break;
+					}
+
+					$reported_rows[ $post_id ] = $planned;
+					$batch_changed++;
+					continue;
+				}
 			}
 
 			/**
@@ -2156,7 +2683,7 @@ class Slug_Sync {
 			$old_slug = $row->post_name;
 			$old_url  = get_permalink( $row->ID );
 
-			$new_slug = self::claim( $target, (int) $row->ID, $row->post_status, $post_type, $row->post_parent, ! $apply, $run_id );
+			$new_slug = self::claim( $target, $post_id, $row->post_status, $post_type, $row->post_parent, ! $apply, $run_id, $old_slug );
 
 			if ( $new_slug === $old_slug ) {
 				continue;
@@ -2164,8 +2691,20 @@ class Slug_Sync {
 
 			$note = ( $new_slug !== $target ) ? __( 'duplicate title, suffixed', 'slug-sync' ) : '';
 
+			$new_url    = self::preview_url( $old_url, $old_slug, $new_slug );
+			$change_row = self::change_row( $row, $post_type, $old_slug, $new_slug, $old_url, $new_url, $note );
+
+			// The private journal is flushed before Apply mutates the database. If
+			// the request dies in the following instructions, Resume can determine
+			// whether this exact plan succeeded and restore its public report row.
+			if ( ! self::write_csv_row( $journal_handle, $change_row ) ) {
+				$report_failed = true;
+				break;
+			}
+			$journal_rows[ $post_id ] = $change_row;
+
 			if ( $apply ) {
-				$result = self::write_slug( (int) $row->ID, $new_slug, $quiet, $old_slug, $row->post_status, $post_type );
+				$result = self::write_slug( $post_id, $new_slug, $quiet, $old_slug, $row->post_status, $post_type );
 
 				if ( true !== $result ) {
 					/* translators: 1: post ID, 2: error message. */
@@ -2174,34 +2713,80 @@ class Slug_Sync {
 					continue;
 				}
 
-				$new_url = get_permalink( $row->ID );
-			} else {
-				$new_url = self::preview_url( $old_url, $old_slug, $new_slug );
-			}
+				$actual_slug = (string) get_post_field( 'post_name', $post_id );
 
-			fputcsv(
-				$changes_handle,
-				array( $row->ID, $post_type, $row->post_status, self::csv_text( $row->post_title ), $old_slug, $new_slug, $old_url, $new_url, $note ),
-				',',
-				'"',
-				''
-			);
-			$batch_changed++;
+				if ( '' === $actual_slug || $actual_slug === $old_slug ) {
+					/* translators: %d: post ID. */
+					$log[] = sprintf( __( '#%d failed: WordPress did not retain the requested slug.', 'slug-sync' ), $post_id );
+					$batch_errors++;
+					continue;
+				}
+
+				$new_url = get_permalink( $post_id );
+
+				if ( $actual_slug !== $new_slug ) {
+					$new_slug = $actual_slug;
+					$note = $note ? $note . '; ' : '';
+					$note .= __( 'slug adjusted during WordPress save', 'slug-sync' );
+				}
+
+				$change_row = self::change_row( $row, $post_type, $old_slug, $new_slug, $old_url, $new_url, $note );
+
+				if ( ! self::write_csv_row( $journal_handle, $change_row ) ) {
+					$report_failed = true;
+					break;
+				}
+				$journal_rows[ $post_id ] = $change_row;
+			}
 
 			// Only published posts get a redirect. get_permalink() on a draft
 			// returns a query-string preview URL, which is junk in a redirect table.
-			if ( 'publish' === $row->post_status ) {
-				fputcsv( $redirect_handle, array( wp_make_link_relative( $old_url ), wp_make_link_relative( $new_url ) ), ',', '"', '' );
+			if ( 'publish' === $row->post_status && ! self::write_csv_row( $redirect_handle, array( wp_make_link_relative( $old_url ), wp_make_link_relative( $new_url ) ) ) ) {
+				$report_failed = true;
+				break;
 			}
+
+			if ( ! self::write_csv_row( $changes_handle, $change_row ) ) {
+				$report_failed = true;
+				break;
+			}
+
+			$reported_rows[ $post_id ] = $change_row;
+			$batch_changed++;
 
 			$log[] = sprintf( '#%d  %s  ->  %s%s', $row->ID, $old_slug, $new_slug, $note ? '   [' . $note . ']' : '' );
 		}
 
 		fclose( $changes_handle );  // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
 		fclose( $redirect_handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+		fclose( $journal_handle );  // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+
+		if ( $report_failed ) {
+			$run['status']     = 'paused';
+			$run['updated_at'] = time();
+			$run['errors']     = $errors + 1;
+			self::save_run( $run );
+			self::release_lock( $lock_token );
+			echo '<div class="notice notice-error"><p>' .
+				esc_html__( 'A report write failed. The run was paused without advancing its checkpoint; any slug already written is safely recorded in the recovery journal. Check disk space and uploads permissions, then resume.', 'slug-sync' ) .
+				'</p></div>';
+			return;
+		}
 
 		$finished = empty( $rows ) || count( $rows ) < $batch;
 		$paused   = ! $finished && $pause;
+
+		if ( $finished && ! self::rebuild_redirect_report( $changes_path, $redirect_path ) ) {
+			$run['status']     = 'paused';
+			$run['updated_at'] = time();
+			$run['errors']     = $errors + 1;
+			self::save_run( $run );
+			self::release_lock( $lock_token );
+			echo '<div class="notice notice-error"><p>' .
+				esc_html__( 'The final redirect report could not be verified. The run was paused without advancing its checkpoint; check disk space and uploads permissions, then resume.', 'slug-sync' ) .
+				'</p></div>';
+			return;
+		}
 
 		$run['last_id']           = $next_last;
 		$run['done']              = $done;
@@ -2223,14 +2808,27 @@ class Slug_Sync {
 			$run['status'] = 'running';
 		}
 
-		self::save_run( $run );
+		if ( ! self::save_run( $run ) ) {
+			self::release_lock( $lock_token );
+			echo '<div class="notice notice-error"><p>' .
+				esc_html__( 'The batch reports are safe, but WordPress could not save the run checkpoint. The recovery journal was kept; reload the page and resume to reconcile this batch.', 'slug-sync' ) .
+				'</p></div>';
+			return;
+		}
 
 		if ( $finished ) {
 			self::clear_active_run( $run_id );
 			self::reset_claims( $run_id );
 		} else {
 			// One write per batch rather than one per post; see flush_claims().
-			self::flush_claims( $run_id );
+			self::flush_claims( $run_id, $changes_path );
+		}
+
+		if ( is_file( $journal_path ) ) {
+			// The batch checkpoint and public changes report are now durable, so its
+			// write-ahead journal is no longer needed.
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
+			unlink( $journal_path );
 		}
 
 		self::release_lock( $lock_token );
@@ -2352,6 +2950,102 @@ class Slug_Sync {
 	}
 
 	/**
+	 * Commit recoverable journal rows before a crashed run is canceled.
+	 *
+	 * @param array<string,mixed> $run Run record, updated with the recovered count.
+	 * @return bool
+	 */
+	private static function reconcile_journal( &$run ) {
+		$run_id       = sanitize_key( $run['id'] );
+		$journal_path = self::report_path( $run_id, 'journal' );
+
+		if ( ! is_file( $journal_path ) ) {
+			return true;
+		}
+
+		$journal = self::report_rows_by_id( $journal_path );
+
+		if ( ! $journal ) {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
+			unlink( $journal_path );
+			return true;
+		}
+
+		$changes_path  = self::report_path( $run_id, 'changes' );
+		$redirect_path = self::report_path( $run_id, 'redirects' );
+		$reported      = self::report_rows_by_id( $changes_path );
+		$changes       = fopen( $changes_path, 'a' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
+		$redirects     = fopen( $redirect_path, 'a' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
+
+		if ( ! $changes || ! $redirects ) {
+			if ( $changes ) {
+				fclose( $changes ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+			}
+			if ( $redirects ) {
+				fclose( $redirects ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+			}
+			return false;
+		}
+
+		$ok       = true;
+		$is_apply = isset( $run['mode'] ) && 'apply' === $run['mode'];
+		$quiet    = ! isset( $run['write'] ) || 'quiet' === $run['write'];
+
+		foreach ( $journal as $post_id => $row ) {
+			if ( isset( $reported[ $post_id ] ) ) {
+				continue;
+			}
+
+			if ( $is_apply ) {
+				$current_post = get_post( $post_id );
+
+				if ( ! $current_post || (string) $current_post->post_name === $row[4] ) {
+					continue; // The planned write never happened.
+				}
+
+				if ( (string) $current_post->post_name !== $row[5] ) {
+					if ( $quiet ) {
+						continue; // A later edit, not Slug Sync's direct write.
+					}
+
+					$row[5] = (string) $current_post->post_name;
+					$row[7] = get_permalink( $post_id );
+					$row[8] = $row[8] ? $row[8] . '; ' : '';
+					$row[8] .= __( 'slug adjusted during WordPress save', 'slug-sync' );
+				}
+			}
+
+			if ( 'publish' === $row[2] ) {
+				$ok = self::write_csv_row( $redirects, array( wp_make_link_relative( $row[6] ), wp_make_link_relative( $row[7] ) ) );
+			}
+
+			if ( $ok ) {
+				$ok = self::write_csv_row( $changes, $row );
+			}
+
+			if ( ! $ok ) {
+				break;
+			}
+
+			$reported[ $post_id ] = $row;
+		}
+
+		fclose( $changes );   // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+		fclose( $redirects ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+
+		if ( ! $ok || ! self::rebuild_redirect_report( $changes_path, $redirect_path ) ) {
+			return false;
+		}
+
+		$run['changed'] = max( isset( $run['changed'] ) ? absint( $run['changed'] ) : 0, count( self::report_rows_by_id( $changes_path ) ) );
+
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
+		unlink( $journal_path );
+
+		return true;
+	}
+
+	/**
 	 * Cancel an unfinished run while retaining its partial reports.
 	 */
 	private static function cancel_run() {
@@ -2376,10 +3070,26 @@ class Slug_Sync {
 		$run = self::get_run( $run_id );
 
 		if ( $run && ! self::run_is_finished( $run ) ) {
+			if ( ! self::reconcile_journal( $run ) ) {
+				self::release_lock( $lock_token );
+				echo '<div class="notice notice-error"><p>' .
+					esc_html__( 'The recovery journal could not be merged into the reports, so the run was not stopped. Check disk space and uploads permissions, then resume or try stopping again.', 'slug-sync' ) .
+					'</p></div>';
+				return;
+			}
+
 			$run['status']       = 'canceled';
 			$run['updated_at']   = time();
 			$run['completed_at'] = time();
-			self::save_run( $run );
+
+			if ( ! self::save_run( $run ) ) {
+				self::release_lock( $lock_token );
+				echo '<div class="notice notice-error"><p>' .
+					esc_html__( 'The reports are safe, but WordPress could not save the stopped status. Reload the page and try stopping the run again.', 'slug-sync' ) .
+					'</p></div>';
+				return;
+			}
+
 			self::clear_active_run( $run_id );
 			self::reset_claims( $run_id );
 		}
@@ -2452,6 +3162,8 @@ class Slug_Sync {
 
 		$restored = 0;
 		$skipped  = 0;
+		$failed   = 0;
+		$already  = 0;
 		$log      = array();
 
 		while ( ( $row = fgetcsv( $handle, 0, ',', '"', '' ) ) !== false ) {
@@ -2460,33 +3172,57 @@ class Slug_Sync {
 				continue;
 			}
 
-			$post_id   = absint( $row[0] );
-			$post_type = sanitize_key( $row[1] );
-			$status    = sanitize_key( $row[2] );
-			$old_slug  = $row[4];
-			$new_slug  = $row[5];
+			$post_id  = absint( $row[0] );
+			$old_slug = $row[4];
+			$new_slug = $row[5];
 
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-			$current = $wpdb->get_var( $wpdb->prepare( "SELECT post_name FROM {$wpdb->posts} WHERE ID = %d", $post_id ) );
+			$current = $wpdb->get_row(
+				$wpdb->prepare(
+					"SELECT post_name, post_status, post_type, post_parent FROM {$wpdb->posts} WHERE ID = %d",
+					$post_id
+				)
+			);
 
 			if ( null === $current ) {
 				$skipped++;
 				continue;
 			}
 
-			if ( $current !== $new_slug ) {
+			if ( $current->post_name === $old_slug ) {
+				$already++;
+				continue; // Restored by an earlier attempt that ended before checkpointing.
+			}
+
+			if ( $current->post_name !== $new_slug ) {
 				$skipped++;
 				/* translators: 1: post ID, 2: current slug, 3: expected slug. */
-				$log[] = sprintf( __( '#%1$d skipped, slug is now "%2$s" rather than "%3$s"', 'slug-sync' ), $post_id, $current, $new_slug );
+				$log[] = sprintf( __( '#%1$d skipped, slug is now "%2$s" rather than "%3$s"', 'slug-sync' ), $post_id, $current->post_name, $new_slug );
+				continue;
+			}
+
+			$safe_old_slug = wp_unique_post_slug(
+				$old_slug,
+				$post_id,
+				$current->post_status,
+				$current->post_type,
+				(int) $current->post_parent
+			);
+
+			if ( $safe_old_slug !== $old_slug ) {
+				$skipped++;
+				/* translators: 1: post ID, 2: old slug, 3: slug WordPress would use instead. */
+				$log[] = sprintf( __( '#%1$d skipped, the old slug "%2$s" is now in use (WordPress would choose "%3$s")', 'slug-sync' ), $post_id, $old_slug, $safe_old_slug );
 				continue;
 			}
 
 			// The slug being retired here is the one the run created, so record it.
-			$result = self::write_slug( $post_id, $old_slug, true, $new_slug, $status, $post_type );
+			$result = self::write_slug( $post_id, $old_slug, true, $new_slug, $current->post_status, $current->post_type );
 
 			if ( true === $result ) {
 				$restored++;
 			} else {
+				$failed++;
 				/* translators: 1: post ID, 2: error message. */
 				$log[] = sprintf( __( '#%1$d failed: %2$s', 'slug-sync' ), $post_id, $result );
 			}
@@ -2495,23 +3231,43 @@ class Slug_Sync {
 		fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
 
 		if ( $run ) {
-			$run['status']            = 'rolled_back';
+			$previous_restored        = isset( $run['rollback_restored'] ) ? absint( $run['rollback_restored'] ) : 0;
 			$run['updated_at']        = time();
-			$run['rolled_back_at']    = time();
-			$run['rollback_restored'] = $restored;
+			$run['rollback_restored'] = $previous_restored + $restored;
 			$run['rollback_skipped']  = $skipped;
-			self::save_run( $run );
+			$run['rollback_errors']   = $failed;
+
+			if ( 0 === $failed ) {
+				$run['status']         = 'rolled_back';
+				$run['rolled_back_at'] = time();
+			}
+
+			if ( ! self::save_run( $run ) ) {
+				$failed++;
+				$log[] = __( 'The slugs were processed, but WordPress could not save the Undo checkpoint. Run Undo changes again to reconcile the status.', 'slug-sync' );
+			}
 		}
 
 		self::release_lock( $lock_token );
 
-		echo '<div class="notice notice-success"><p>';
-		printf(
-			/* translators: 1: number restored, 2: number skipped. */
-			esc_html__( 'Undo finished: restored %1$d slugs and skipped %2$d items that were missing or had changed since the run.', 'slug-sync' ),
-			(int) $restored,
-			(int) $skipped
-		);
+		echo '<div class="notice ' . esc_attr( $failed ? 'notice-error' : 'notice-success' ) . '"><p>';
+
+		if ( $failed ) {
+			printf(
+				/* translators: 1: restored count, 2: skipped count, 3: failed count. */
+				esc_html__( 'Undo is incomplete: restored %1$d slugs, skipped %2$d, and failed to restore %3$d. Fix the reported database error and use Undo changes again; successful rows will not be repeated.', 'slug-sync' ),
+				(int) $restored,
+				(int) $skipped,
+				(int) $failed
+			);
+		} else {
+			printf(
+				/* translators: 1: number restored, 2: number skipped. */
+				esc_html__( 'Undo finished: restored %1$d slugs and skipped %2$d items that were missing, had a different current slug, or could no longer reclaim their old slug.', 'slug-sync' ),
+				(int) ( $restored + $already ),
+				(int) $skipped
+			);
+		}
 		echo '</p></div>';
 
 		if ( $log ) {

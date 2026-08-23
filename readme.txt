@@ -21,7 +21,7 @@ Slug Sync rewrites slugs in bulk to match titles, exactly as WordPress would if 
 
 The preview writes no changes and produces a CSV of every slug it would alter, with the old and new URL side by side.
 
-Previews are collision accurate. If two posts share a title, one of them has to take a numeric suffix. A naive preview cannot see slugs claimed earlier in the same run, so it shows both posts taking the same slug, and the redirect map ends up pointing at a URL that will never exist. Slug Sync tracks claims across the whole run, so the preview matches what applying will actually produce, and every suffixed post is flagged in a note column.
+Previews are collision accurate. If two posts share a title, one of them may have to take a numeric suffix. A naive preview cannot see slugs occupied or released earlier in the same run, so its redirect map can point at a URL that will never exist. Slug Sync simulates WordPress's real rules across the whole run: flat post types share one namespace, hierarchical slugs are scoped to their parent, drafts and pending items keep WordPress's no-uniqueness behaviour, and existing numeric suffixes increment normally. Every suffixed post is flagged in a note column.
 
 **Old URLs keep working**
 
@@ -37,16 +37,16 @@ By default slugs go straight to the posts table, skipping `save_post`. On a stor
 
 **Undo changes**
 
-Every run gets its own timestamped history entry and reports. An applied run's report doubles as an undo: it restores the slugs recorded for that specific run. Anything edited since the run is skipped instead of being overwritten.
+Every run gets its own timestamped history entry and reports. An applied run's report doubles as an undo: it restores the slugs recorded for that specific run. Any item whose slug changed again after the run is skipped instead of being overwritten. If another item has claimed an old slug in the meantime, Undo skips that conflict rather than creating two posts with the same slug.
 
 **Resume safely**
 
-Batch progress is stored by WordPress rather than only in the browser. If a tab closes or a request is interrupted, the unfinished run can resume from its last completed batch. A run lock prevents overlapping tabs or administrators from processing the same catalogue at once.
+Batch progress is stored by WordPress rather than only in the browser. Before Apply changes an item, a private write-ahead journal is flushed to uploads; the public changes row then becomes that item's commit marker. If a tab closes, a hook fails, or a request is interrupted before the batch checkpoint is saved, Resume reconciles those rows without truncating or duplicating the Undo report. A run lock prevents overlapping tabs or administrators from processing the same catalogue at once.
 
 **Other details**
 
 * Works on any public post type, not just WooCommerce products.
-* Batched with keyset pagination, so nothing is skipped if someone publishes while a run is in progress, and long runs do not time out.
+* Batched with keyset pagination, avoiding the duplicate/skip drift caused by SQL OFFSET when items are added or removed during a run.
 * Keeps separate reports and undo controls for each run, pruning the oldest once fifty runs have accumulated so old reports do not pile up in uploads.
 * Resumes interrupted runs and prevents overlapping runs.
 * Slugs are capped at a word boundary before they can overflow the database column.
@@ -73,7 +73,7 @@ For posts, products and other content that does not nest inside a parent, old UR
 
 = What happens to two posts with the same title? =
 
-The lower post ID keeps the clean slug and the other takes a numeric suffix, which is what WordPress does normally. Both are flagged in the note column of the report, so you can rename them properly if you would rather not have a suffix.
+For posts in the same WordPress slug namespace, the lower post ID is processed first and keeps the clean available slug; the other takes the next numeric suffix. Pages under different parents may both keep the same final segment because WordPress treats those as different namespaces. Every suffix added by WordPress is flagged in the report.
 
 = Can I run this on pages? =
 
@@ -87,7 +87,7 @@ No. Variations are a separate post type and are never listed.
 
 = Can I undo a run? =
 
-Yes. Previous runs provides an Undo changes button for each applied run. Anything edited since that run is skipped instead of being overwritten.
+Yes. Previous runs provides an Undo changes button for each applied run. Any item whose slug changed again after that run is skipped instead of being overwritten, as is any item whose old slug has since been claimed elsewhere.
 
 = Is it safe on a large site? =
 
@@ -111,5 +111,7 @@ It processes in batches and continues automatically, and there is an option to s
 * Quiet writes that skip `save_post` hooks, or a full update that fires them.
 * Persistent run history with per-run change and redirect reports, and per-run undo, capped at fifty runs.
 * Resume and cancel controls for interrupted runs, with an atomic lock preventing overlapping runs.
+* A flushed write-ahead journal makes interrupted Apply batches recoverable without losing Undo rows.
+* Undo refuses to recreate a slug that another post has claimed since the run.
 * Preview reports how many titles contain product codes, filler words or non-Latin script.
 * The `slug_sync_source_title` filter lets add-on plugins rewrite a title before its slug is generated.

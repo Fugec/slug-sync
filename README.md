@@ -33,7 +33,7 @@ snapshot for developers, not an installable plugin. Use the download link above 
 
 ```bash
 composer install     # PHPUnit 9.6, the only dev dependency
-vendor/bin/phpunit   # unit tests
+vendor/bin/phpunit   # unit and regression tests
 bash bin/build.sh    # → build/slug-sync-<version>.zip
 ```
 
@@ -41,7 +41,8 @@ bash bin/build.sh    # → build/slug-sync-<version>.zip
 stages it into a folder named `slug-sync`, which is the plugin slug. It refuses to build if the
 version in the plugin header, `SLUG_SYNC_VERSION` and the readme's `Stable tag` disagree.
 
-Two workflows publish that zip. Every push to `main` runs
+Both publishing workflows first run the test suite and PHP syntax checks on PHP 7.4 and 8.4.
+Every push to `main` runs
 [`dev-build.yml`](.github/workflows/dev-build.yml), which rebuilds it and republishes the `dev`
 prerelease behind the download link above. Pushing a `v*` tag runs
 [`release.yml`](.github/workflows/release.yml), which checks the tag against the plugin header,
