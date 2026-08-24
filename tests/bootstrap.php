@@ -16,12 +16,31 @@ define( 'DAY_IN_SECONDS', 86400 );
 $GLOBALS['slug_sync_test_transients'] = array();
 $GLOBALS['slug_sync_test_posts']      = array();
 $GLOBALS['slug_sync_test_options']    = array();
+$GLOBALS['slug_sync_test_styles']     = array();
+$GLOBALS['slug_sync_test_scripts']    = array();
+$GLOBALS['slug_sync_test_script_data'] = array();
 $GLOBALS['wp_rewrite']                = (object) array(
 	'feeds'           => array( 'feed', 'rss2' ),
 	'pagination_base' => 'page',
 );
 
 function add_action() {}
+
+function plugins_url( $path ) {
+	return 'https://example.test/wp-content/plugins/slug-sync/' . ltrim( $path, '/' );
+}
+
+function wp_enqueue_style( $handle, $src, $dependencies, $version ) {
+	$GLOBALS['slug_sync_test_styles'][ $handle ] = compact( 'src', 'dependencies', 'version' );
+}
+
+function wp_enqueue_script( $handle, $src, $dependencies, $version, $in_footer ) {
+	$GLOBALS['slug_sync_test_scripts'][ $handle ] = compact( 'src', 'dependencies', 'version', 'in_footer' );
+}
+
+function wp_localize_script( $handle, $object_name, $data ) {
+	$GLOBALS['slug_sync_test_script_data'][ $handle ] = compact( 'object_name', 'data' );
+}
 
 function admin_url( $path = '' ) {
 	return 'https://example.test/wp-admin/' . ltrim( $path, '/' );
@@ -49,6 +68,10 @@ function esc_attr( $text ) {
 
 function esc_attr_e( $text ) {
 	echo esc_attr( $text );
+}
+
+function esc_attr__( $text ) {
+	return esc_attr( $text );
 }
 
 function esc_html( $text ) {
@@ -98,6 +121,15 @@ function absint( $value ) {
 
 function is_post_type_hierarchical( $post_type ) {
 	return 'page' === $post_type;
+}
+
+function get_post_types() {
+	return array(
+		'post'       => (object) array( 'labels' => (object) array( 'name' => 'Posts' ) ),
+		'page'       => (object) array( 'labels' => (object) array( 'name' => 'Pages' ) ),
+		'product'    => (object) array( 'labels' => (object) array( 'name' => 'Products' ) ),
+		'attachment' => (object) array( 'labels' => (object) array( 'name' => 'Media' ) ),
+	);
 }
 
 function get_transient( $key ) {

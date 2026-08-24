@@ -55,4 +55,19 @@ final class ReportRecoveryTest extends TestCase {
 		$this->assertFalse( fgetcsv( $handle, 0, ',', '"', '' ) );
 		fclose( $handle );
 	}
+
+	public function test_existing_report_is_replaced_with_the_windows_safe_fallback() {
+		$source      = $this->temporary_file();
+		$destination = $this->temporary_file();
+		file_put_contents( $source, 'new report' );
+		file_put_contents( $destination, 'old report' );
+
+		$method = ( new ReflectionClass( 'Slug_Sync' ) )->getMethod( 'replace_report_file' );
+		$method->setAccessible( true );
+
+		$this->assertTrue( $method->invoke( null, $source, $destination, false ) );
+		$this->assertSame( 'new report', file_get_contents( $destination ) );
+		$this->assertFileDoesNotExist( $source );
+		$this->assertSame( array(), glob( $destination . '.bak-*.csv' ) );
+	}
 }

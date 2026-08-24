@@ -1,11 +1,13 @@
 <?php
 /**
  * Plugin Name:       Slug Sync
+ * Plugin URI:        https://slugsync.com/
  * Description:       Rewrites post, page, product and custom post type slugs to match their titles. Previews every change first, keeps the old URLs redirecting, exports a redirect map, and can roll the whole run back.
  * Version:           1.0.0
  * Requires at least: 5.6
  * Requires PHP:      7.4
- * Author:            Armin Kapetanovic
+ * Author:            slug-sync
+ * Author URI:        https://slugsync.com/
  * License:           GPL-2.0-or-later
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain:       slug-sync
@@ -79,16 +81,13 @@ class Slug_Sync {
 	 * row moves away from it; keeping the index avoids scanning the whole run for
 	 * every collision check.
 	 *
-	 * @var array<string,array{posts:array<int,array<string,mixed>>,occupied:array<string,array<string,array<int,bool>>>,report_size:int}>
+	 * The durable changes report is already read once at the start of every
+	 * batch. Preview state is reconstructed from those rows instead of storing
+	 * an ever-growing serialized map in a transient.
+	 *
+	 * @var array<string,array{posts:array<int,array<string,mixed>>,occupied:array<string,array<string,array<int,bool>>}>
 	 */
 	private static $claims = array();
-
-	/**
-	 * Run IDs whose claims changed and still need writing back.
-	 *
-	 * @var array<string,bool>
-	 */
-	private static $claims_dirty = array();
 
 	/**
 	 * Boot.
@@ -96,6 +95,7 @@ class Slug_Sync {
 	public static function init() {
 		add_action( 'admin_menu', array( __CLASS__, 'menu' ) );
 		add_action( 'admin_init', array( __CLASS__, 'redirect_to_tools_page' ) );
+		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue_assets' ) );
 		add_action( 'admin_post_slug_sync_download', array( __CLASS__, 'download_report' ) );
 	}
 
@@ -573,7 +573,8 @@ class Slug_Sync {
 	}
 
 	/**
-	 * Transient key used for collision claims in one preview run.
+	 * Legacy transient key used for cleanup after upgrading from an earlier
+	 * preview-state implementation.
 	 *
 	 * @param string $run_id Run ID.
 	 * @return string
@@ -585,31 +586,17 @@ class Slug_Sync {
 	/**
 	 * Empty virtual-slug state for one preview run.
 	 *
-	 * @return array{posts:array<int,array<string,mixed>>,occupied:array<string,array<string,array<int,bool>>>,report_size:int}
+	 * @return array{posts:array<int,array<string,mixed>>,occupied:array<string,array<string,array<int,bool>>}
 	 */
 	private static function empty_claims() {
 		return array(
-			'posts'       => array(),
-			'occupied'    => array(),
-			'report_size' => 0,
+			'posts'    => array(),
+			'occupied' => array(),
 		);
 	}
 
 	/**
-	 * Whether stored claim data uses the current virtual-transition shape.
-	 *
-	 * @param mixed $claims Stored value.
-	 * @return bool
-	 */
-	private static function claims_are_valid( $claims ) {
-		return is_array( $claims )
-			&& isset( $claims['posts'], $claims['occupied'], $claims['report_size'] )
-			&& is_array( $claims['posts'] )
-			&& is_array( $claims['occupied'] );
-	}
-
-	/**
-	 * Load a run's claims into the request, reading the transient at most once.
+	 * Initialize a run's claims in this request.
 	 *
 	 * @param string $run_id Run ID.
 	 */
@@ -617,8 +604,7 @@ class Slug_Sync {
 		$key = sanitize_key( $run_id );
 
 		if ( ! isset( self::$claims[ $key ] ) ) {
-			$claimed              = get_transient( self::claim_key( $run_id ) );
-			self::$claims[ $key ] = self::claims_are_valid( $claimed ) ? $claimed : self::empty_claims();
+			self::$claims[ $key ] = self::empty_claims();
 		}
 	}
 
@@ -682,33 +668,6 @@ class Slug_Sync {
 			'namespace' => $namespace,
 		);
 		$state['occupied'][ $namespace ][ $new_slug ][ $post_id ] = true;
-		self::$claims_dirty[ $key ] = true;
-	}
-
-	/**
-	 * Write a run's claims back once, at the end of a batch.
-	 *
-	 * The claim map grows by one entry per changed post and ends up the size of
-	 * the whole run. Storing it from inside claim() meant re-serializing and
-	 * rewriting the entire map once per post, so a catalogue of n posts cost
-	 * O(n^2) bytes of option writes, and a single late batch could rewrite
-	 * megabytes a hundred times over. One write per batch is enough, because
-	 * nothing outside this request reads the map until the next batch starts.
-	 *
-	 * @param string $run_id Run ID.
-	 * @param string $file   Changes report path.
-	 */
-	private static function flush_claims( $run_id, $file ) {
-		$key = sanitize_key( $run_id );
-
-		if ( empty( self::$claims_dirty[ $key ] ) ) {
-			return;
-		}
-
-		clearstatcache( true, $file );
-		self::$claims[ $key ]['report_size'] = is_file( $file ) ? (int) filesize( $file ) : 0;
-		set_transient( self::claim_key( $run_id ), self::$claims[ $key ], 7 * DAY_IN_SECONDS );
-		unset( self::$claims_dirty[ $key ] );
 	}
 
 	/**
@@ -719,41 +678,22 @@ class Slug_Sync {
 	private static function reset_claims( $run_id ) {
 		$key = sanitize_key( $run_id );
 
-		unset( self::$claims[ $key ], self::$claims_dirty[ $key ] );
+		unset( self::$claims[ $key ] );
 		delete_transient( self::claim_key( $run_id ) );
 	}
 
 	/**
-	 * Rebuild preview collision claims from the durable changes report when a
-	 * transient expired or an external object cache evicted it before a resume.
+	 * Rebuild preview collision claims from rows already loaded from the durable
+	 * changes report for idempotency checks at the start of each batch.
 	 *
-	 * @param string $run_id Run ID.
-	 * @param string $file   Changes report path.
+	 * @param string                                      $run_id Run ID.
+	 * @param array<int,array<int,string|int|float|null>> $rows   Last committed row for each post ID.
 	 */
-	private static function restore_claims( $run_id, $file ) {
-		$key       = sanitize_key( $run_id );
-		$claim_key = self::claim_key( $run_id );
-
-		$stored      = get_transient( $claim_key );
-		$report_size = is_file( $file ) ? (int) filesize( $file ) : 0;
-
-		if ( isset( self::$claims[ $key ] ) || ( self::claims_are_valid( $stored ) && (int) $stored['report_size'] === $report_size ) || ! is_readable( $file ) ) {
-			if ( ! isset( self::$claims[ $key ] ) && self::claims_are_valid( $stored ) && (int) $stored['report_size'] === $report_size ) {
-				self::$claims[ $key ] = $stored;
-			}
-			return;
-		}
-
-		$handle = fopen( $file, 'r' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
-
-		if ( ! $handle ) {
-			return;
-		}
-
+	private static function restore_claims( $run_id, $rows ) {
+		$key = sanitize_key( $run_id );
 		self::$claims[ $key ] = self::empty_claims();
-		fgetcsv( $handle, 0, ',', '"', '' ); // Header row.
 
-		while ( ( $row = fgetcsv( $handle, 0, ',', '"', '' ) ) !== false ) {
+		foreach ( $rows as $row ) {
 			if ( count( $row ) >= 6 ) {
 				$post_id = absint( $row[0] );
 				$parent  = isset( $row[9] ) ? absint( $row[9] ) : absint( get_post_field( 'post_parent', $post_id ) );
@@ -762,11 +702,8 @@ class Slug_Sync {
 			}
 		}
 
-		fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
-
-		self::$claims[ $key ]['report_size'] = $report_size;
-		set_transient( $claim_key, self::$claims[ $key ], 7 * DAY_IN_SECONDS );
-		unset( self::$claims_dirty[ $key ] );
+		// Remove an obsolete value left by a run started on an earlier version.
+		delete_transient( self::claim_key( $run_id ) );
 	}
 
 	/* ------------------------------------------------------------- reports */
@@ -1047,7 +984,7 @@ class Slug_Sync {
 	private static function rebuild_redirect_report( $changes_path, $redirect_path ) {
 		$rows = self::report_rows_by_id( $changes_path );
 		// Keep the temporary artifact within the uninstall cleanup glob even if PHP
-		// exits between writing and the atomic rename.
+		// exits between writing and the final replacement.
 		$temp = $redirect_path . '.tmp-' . strtolower( wp_generate_password( 8, false, false ) ) . '.csv';
 		$handle = fopen( $temp, 'w' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
 
@@ -1072,8 +1009,7 @@ class Slug_Sync {
 
 		fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
 
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename
-		if ( $ok && rename( $temp, $redirect_path ) ) {
+		if ( $ok && self::replace_report_file( $temp, $redirect_path ) ) {
 			return true;
 		}
 
@@ -1082,6 +1018,54 @@ class Slug_Sync {
 			unlink( $temp );
 		}
 
+		return false;
+	}
+
+	/**
+	 * Move a completed report over its previous version on every supported OS.
+	 *
+	 * PHP can replace an existing destination with rename() on POSIX systems,
+	 * but not on Windows. The portable fallback first moves the old destination
+	 * aside, restores it if the second move fails, and removes it after success.
+	 *
+	 * @param string    $source      Completed temporary report.
+	 * @param string    $destination Final report path.
+	 * @param bool|null $can_replace Whether rename() can replace a destination; null detects the OS.
+	 * @return bool
+	 */
+	private static function replace_report_file( $source, $destination, $can_replace = null ) {
+		if ( null === $can_replace ) {
+			$can_replace = 'Windows' !== PHP_OS_FAMILY;
+		}
+
+		if ( ! is_file( $destination ) || $can_replace ) {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename
+			if ( rename( $source, $destination ) ) {
+				return true;
+			}
+		}
+
+		if ( ! is_file( $source ) || ! is_file( $destination ) ) {
+			return false;
+		}
+
+		$backup = $destination . '.bak-' . strtolower( wp_generate_password( 8, false, false ) ) . '.csv';
+
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename
+		if ( ! rename( $destination, $backup ) ) {
+			return false;
+		}
+
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename
+		if ( rename( $source, $destination ) ) {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
+			unlink( $backup );
+			return true;
+		}
+
+		// Best-effort restoration preserves the last complete report on failure.
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename
+		rename( $backup, $destination );
 		return false;
 	}
 
@@ -1502,655 +1486,50 @@ class Slug_Sync {
 	/* ------------------------------------------------------------ screens */
 
 	/**
-	 * Small, dependency-free styles for the plugin's admin screen.
+	 * Load the plugin's local assets only on its own Tools screen.
+	 *
+	 * @param string $hook_suffix Current admin screen hook suffix.
 	 */
-	private static function render_styles() {
-		?>
-		<style>
-			/* slugsync.com's tokens, copied from the site's own stylesheet so the
-			   plugin and the site are one product rather than two that share a
-			   logo. wp-admin's greys are deliberately not used: #dcdcde and
-			   #50575e are WordPress's, and mixing them with the brand palette is
-			   what made the screen read as a different piece of software. */
-			.slug-sync-admin {
-				--ss-navy: #0b0f43;
-				--ss-accent: #f43d03;
-				--ss-accent-ink: #f43d03;
-				--ss-accent-soft: rgba(244, 61, 3, .09);
-				--ss-bg-2: rgba(11, 15, 67, .035);
-				--ss-muted: rgba(11, 15, 67, .66);
-				--ss-dim: rgba(11, 15, 67, .48);
-				--ss-line: rgba(11, 15, 67, .10);
-				--ss-line-2: rgba(11, 15, 67, .20);
-				--ss-r: 16px;
-				--ss-r-sm: 10px;
-				--ss-ease: cubic-bezier(.22, 1, .36, 1);
-			}
-			.slug-sync-admin { color: var(--ss-navy); max-width: none; }
-			.slug-sync-brand {
-				align-items: center;
-				display: flex;
-				flex-wrap: wrap;
-				gap: 12px;
-				margin: 0 0 4px;
-				padding: 9px 0 4px;
-			}
-			.slug-sync-brand img { height: 34px; width: auto; }
-			.slug-sync-intro,
-			.slug-sync-card,
-			.slug-sync-active {
-				background: #fff;
-				border: 1px solid var(--ss-line);
-				border-radius: var(--ss-r);
-				box-sizing: border-box;
-				margin: 18px 0;
-				padding: 24px;
-				position: relative;
-				transition: border-color .25s, box-shadow .25s var(--ss-ease);
-			}
-			.slug-sync-admin code { background: #fff; border-radius: 4px; }
-			/* The site lifts its cards on hover. These hold forms rather than
-			   links, so they take the border and shadow and not the movement --
-			   a control that shifts under the pointer is worse than a static
-			   one, however much it matches. */
-			.slug-sync-card:hover { border-color: var(--ss-line-2); box-shadow: 0 14px 32px -20px rgba(11, 15, 67, .3); }
-			.slug-sync-intro > p:first-child { font-size: 15px; margin-top: 0; }
-			.slug-sync-steps {
-				display: grid;
-				gap: 12px;
-				grid-template-columns: repeat(3, minmax(0, 1fr));
-				margin: 18px 0 0;
-			}
-			.slug-sync-step {
-				background: #fff;
-				border: 1px solid var(--ss-line);
-				border-radius: var(--ss-r);
-				padding: 22px 20px;
-				transition: border-color .25s, box-shadow .25s var(--ss-ease);
-			}
-			.slug-sync-step:hover { border-color: var(--ss-line-2); box-shadow: 0 14px 32px -20px rgba(11, 15, 67, .3); }
-			.slug-sync-step strong { display: block; margin-bottom: 4px; }
-			.slug-sync-card > h2,
-			.slug-sync-active > h2 {
-				color: var(--ss-navy);
-				font-size: 1.05rem;
-				font-weight: 700;
-				letter-spacing: -.01em;
-				line-height: 1.2;
-				margin: 0 0 8px;
-				padding: 0;
-			}
-			/* The site's section label: small, orange, widely tracked. */
-			.slug-sync-eyebrow {
-				color: var(--ss-accent-ink);
-				display: block;
-				font-size: .75rem;
-				font-weight: 700;
-				letter-spacing: .14em;
-				margin: 0 0 10px;
-				text-transform: uppercase;
-			}
-			.slug-sync-card > p { color: var(--ss-muted); margin-top: 0; }
-			.slug-sync-progress { margin: 14px 0 4px; }
-			.slug-sync-progress-track {
-				background: var(--ss-bg-2);
-				border-radius: 9px;
-				box-shadow: inset 0 0 0 1px var(--ss-line);
-				height: 18px;
-				overflow: hidden;
-				width: 100%;
-			}
-			.slug-sync-progress-fill {
-				background: var(--ss-accent);
-				border-radius: 9px;
-				height: 100%;
-				transition: width .3s ease;
-			}
-			.slug-sync-progress-fill.is-working {
-				animation: slug-sync-stripes 1s linear infinite;
-				background-image: linear-gradient(45deg, rgba(255,255,255,.22) 25%, transparent 25%, transparent 50%, rgba(255,255,255,.22) 50%, rgba(255,255,255,.22) 75%, transparent 75%);
-				background-size: 22px 22px;
-			}
-			@keyframes slug-sync-stripes {
-				from { background-position: 0 0; }
-				to { background-position: 22px 0; }
-			}
-			@media (prefers-reduced-motion: reduce) {
-				.slug-sync-progress-fill { transition: none; }
-				.slug-sync-progress-fill.is-working { animation: none; }
-			}
-			.slug-sync-progress-meta {
-				color: var(--ss-muted);
-				display: flex;
-				font-size: 13px;
-				gap: 12px;
-				justify-content: space-between;
-				margin-top: 6px;
-			}
-			.slug-sync-progress-meta strong { color: var(--ss-navy); }
-			.slug-sync-number {
-				align-items: center;
-				background: var(--ss-accent);
-				border-radius: 50%;
-				color: #fff;
-				display: inline-flex;
-				font-size: 13px;
-				height: 26px;
-				justify-content: center;
-				margin-right: 8px;
-				vertical-align: 2px;
-				width: 26px;
-			}
-			.slug-sync-select { font-size: 14px; min-width: 280px; }
-			.slug-sync-choices { display: grid; gap: 10px; margin-top: 14px; }
-			.slug-sync-choice {
-				align-items: flex-start;
-				border: 1px solid var(--ss-line-2);
-				border-radius: var(--ss-r-sm);
-				cursor: pointer;
-				display: grid;
-				gap: 10px;
-				grid-template-columns: auto 1fr;
-				padding: 14px;
-			}
-			.slug-sync-choice:hover,
-			.slug-sync-choice:focus-within { border-color: var(--ss-navy); box-shadow: 0 0 0 1px var(--ss-navy); }
-			.slug-sync-choice:has(input:checked) { background: var(--ss-accent-soft); border-color: var(--ss-accent); }
-			.slug-sync-choice input { margin-top: 3px; }
-			.slug-sync-choice-title { display: block; font-size: 14px; margin-bottom: 4px; }
-			.slug-sync-choice-help { color: var(--ss-muted); display: block; line-height: 1.5; }
-			.slug-sync-badge {
-				background: #e7f5ea;
-				border-radius: 999px;
-				color: #116329;
-				display: inline-block;
-				font-size: 11px;
-				font-weight: 600;
-				margin-left: 6px;
-				padding: 2px 8px;
-				vertical-align: 1px;
-			}
-			.slug-sync-example { background: var(--ss-bg-2); border-radius: var(--ss-r-sm); display: inline-block; margin-top: 5px; padding: 3px 7px; }
-			.slug-sync-apply-note { background: #fcf0f1; border: 1px solid var(--ss-line); border-radius: var(--ss-r-sm); padding: 12px 14px; }
-			.slug-sync-hierarchy-note { background: #fcf9e8; border: 1px solid var(--ss-line); border-radius: var(--ss-r-sm); padding: 12px 14px; }
-			.slug-sync-hierarchy-note p { margin: 6px 0 0; }
-			.slug-sync-safety { background: var(--ss-bg-2); border: 1px solid var(--ss-line); border-radius: var(--ss-r-sm); padding: 16px 18px; }
-			.slug-sync-safety h3 { margin: 0 0 6px; }
-			.slug-sync-safety ul { margin-bottom: 0; }
-			.slug-sync-actions { align-items: center; display: flex; gap: 12px; margin: 18px 0 24px; }
-			.slug-sync-admin .button {
-				align-items: center;
-				background: #fff;
-				border: 1px solid var(--ss-line-2);
-				border-radius: 10px;
-				box-sizing: border-box;
-				color: var(--ss-navy);
-				display: inline-flex;
-				font-size: 14px;
-				font-weight: 600;
-				justify-content: center;
-				line-height: 1.2;
-				min-height: 42px;
-				padding: 9px 18px;
-				transition: transform .14s var(--ss-ease), border-color .2s, background .2s, box-shadow .25s;
-			}
-			.slug-sync-admin .button:hover {
-				background: var(--ss-bg-2);
-				border-color: var(--ss-navy);
-				color: var(--ss-navy);
-				transform: translateY(-1px);
-			}
-			.slug-sync-admin .button:active { transform: translateY(0); }
-			.slug-sync-admin .button.button-small {
-				font-size: 13px;
-				min-height: 38px;
-				padding: 8px 14px;
-			}
-			.slug-sync-admin .button-primary {
-				background: var(--ss-accent);
-				border-color: var(--ss-accent);
-				border-radius: 10px;
-				box-shadow: 0 8px 22px -10px rgba(244, 61, 3, .75);
-				color: #fff;
-				text-shadow: none;
-			}
-			.slug-sync-admin .button-primary:hover {
-				background: var(--ss-accent);
-				border-color: var(--ss-accent);
-				box-shadow: 0 12px 30px -10px rgba(244, 61, 3, .85);
-				color: #fff;
-				filter: brightness(.92);
-			}
-			.slug-sync-admin .button-primary:focus {
-				background: var(--ss-accent);
-				border-color: var(--ss-accent);
-				box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--ss-navy);
-				color: #fff;
-			}
-			.slug-sync-controls { align-items: center; display: flex; flex-wrap: wrap; gap: 8px; }
-			.slug-sync-controls form,
-			.slug-sync-history form { margin: 0; }
-			.slug-sync-history-panel {
-				background: #fff;
-				border: 1px solid var(--ss-line);
-				border-radius: var(--ss-r);
-				box-sizing: border-box;
-				margin: 24px 0;
-				padding: 24px;
-			}
-			.slug-sync-history-panel > h2 { color: var(--ss-navy); margin: 0 0 6px; }
-			.slug-sync-history-panel > p { color: var(--ss-muted); margin: 0 0 18px; }
-			.slug-sync-table-wrap {
-				border: 1px solid var(--ss-line);
-				border-radius: var(--ss-r-sm);
-				overflow-x: auto;
-			}
-			.slug-sync-history { border: 0; border-collapse: separate; border-spacing: 0; }
-			.slug-sync-history.striped > tbody > :nth-child(odd) { background: var(--ss-bg-2); }
-			.slug-sync-history.striped > tbody > :nth-child(even) { background: #fff; }
-			.slug-sync-history thead th {
-				background: var(--ss-bg-2);
-				border-bottom: 1px solid var(--ss-line-2);
-				color: var(--ss-navy);
-				font-size: 12px;
-				font-weight: 700;
-				letter-spacing: .055em;
-				padding: 12px 14px;
-				text-transform: uppercase;
-			}
-			.slug-sync-history td { color: var(--ss-muted); font-size: 13px; line-height: 1.5; padding: 14px; vertical-align: top; }
-			.slug-sync-history td strong { color: var(--ss-navy); }
-			.slug-sync-history tbody tr.slug-sync-latest-run > td {
-				background: var(--ss-accent-soft) !important;
-				border-bottom-color: var(--ss-line);
-				border-top: 1px solid var(--ss-line);
-			}
-			.slug-sync-latest-badge {
-				background: var(--ss-accent);
-				border-radius: 999px;
-				color: #fff;
-				display: inline-flex;
-				font-size: 10px;
-				font-weight: 700;
-				letter-spacing: .08em;
-				margin-bottom: 8px;
-				padding: 4px 8px;
-				text-transform: uppercase;
-			}
-			.slug-sync-report-actions { display: flex; flex-wrap: wrap; gap: 8px; }
-			.slug-sync-table-wrap + .description { margin-top: 16px; }
-			.slug-sync-history .slug-sync-report-button { margin: 0; min-width: 150px; white-space: nowrap; }
-			.slug-sync-report-button::before { content: "\2193"; font-size: 15px; line-height: 1; margin-right: 7px; }
-			.slug-sync-latest-run .slug-sync-report-button--changes {
-				background: var(--ss-accent);
-				border-color: var(--ss-accent);
-				box-shadow: 0 8px 22px -10px rgba(244, 61, 3, .75);
-				color: #fff;
-			}
-			.slug-sync-latest-run .slug-sync-report-button--changes:hover {
-				background: var(--ss-accent);
-				border-color: var(--ss-accent);
-				color: #fff;
-				filter: brightness(.92);
-			}
-			.slug-sync-latest-run .slug-sync-report-button--redirects { border-color: var(--ss-accent); color: var(--ss-accent-ink); }
-			.slug-sync-advanced { margin: 0 0 18px; }
-			.slug-sync-advanced > summary {
-				align-items: center;
-				background: #fff;
-				border: 1px solid var(--ss-line);
-				border-radius: var(--ss-r);
-				color: var(--ss-navy);
-				cursor: pointer;
-				display: flex;
-				flex-wrap: wrap;
-				font-size: 15px;
-				font-weight: 700;
-				gap: 12px;
-				list-style: none;
-				padding: 20px 24px;
-				transition: border-color .25s, box-shadow .25s var(--ss-ease);
-			}
-			.slug-sync-advanced > summary::-webkit-details-marker { display: none; }
-			.slug-sync-advanced > summary::before {
-				align-items: center;
-				background: var(--ss-accent-soft);
-				border-radius: 50%;
-				color: var(--ss-accent-ink);
-				content: "+";
-				display: inline-flex;
-				flex: none;
-				font-size: 16px;
-				font-weight: 700;
-				height: 26px;
-				justify-content: center;
-				line-height: 1;
-				width: 26px;
-			}
-			.slug-sync-advanced[open] > summary::before { content: "\2212"; }
-			.slug-sync-advanced > summary:hover { border-color: var(--ss-line-2); box-shadow: 0 14px 32px -20px rgba(11, 15, 67, .3); }
-			.slug-sync-advanced-hint {
-				color: var(--ss-muted);
-				font-size: 13px;
-				font-weight: 400;
-				margin-left: auto;
-			}
-			.slug-sync-advanced[open] > summary { margin-bottom: 0; }
-			.slug-sync-advanced > .slug-sync-card { margin-top: 10px; }
+	public static function enqueue_assets( $hook_suffix ) {
+		if ( ! in_array( $hook_suffix, array( 'tools_page_' . self::PAGE, 'admin_page_' . self::PAGE ), true ) ) {
+			return;
+		}
 
-			/* ---- Vertical rhythm ----------------------------------------
-			   Every block on the screen was setting its own margins, so the gap
-			   above a note and the gap below it were rarely the same number.
-			   One scale, applied once: 8px inside a pair, 16px between blocks,
-			   24px before a new heading, and nothing hanging off the bottom of
-			   a card. */
-			.slug-sync-card > :first-child,
-			.slug-sync-intro > :first-child,
-			.slug-sync-sub > :first-child { margin-top: 0; }
-			.slug-sync-card > :last-child,
-			.slug-sync-intro > :last-child,
-			.slug-sync-sub > :last-child { margin-bottom: 0; }
+		wp_enqueue_style(
+			'slug-sync-admin',
+			plugins_url( 'assets/admin.css', __FILE__ ),
+			array(),
+			SLUG_SYNC_VERSION
+		);
 
-			.slug-sync-card > h2,
-			.slug-sync-sub > h2 { margin: 0 0 8px; }
-			.slug-sync-card > h3 { margin: 24px 0 8px; }
-			.slug-sync-card > p,
-			.slug-sync-sub > p { margin: 0 0 16px; }
+		wp_enqueue_script(
+			'slug-sync-admin',
+			plugins_url( 'assets/admin.js', __FILE__ ),
+			array(),
+			SLUG_SYNC_VERSION,
+			true
+		);
 
-			.slug-sync-card > .slug-sync-safety,
-			.slug-sync-card > .slug-sync-apply-note,
-			.slug-sync-card > .slug-sync-hierarchy-note,
-			.slug-sync-card > .slug-sync-taxonomy-note,
-			.slug-sync-card > .slug-sync-taxonomy-scope,
-			.slug-sync-card > .slug-sync-eg,
-			.slug-sync-card > .slug-sync-examples,
-			.slug-sync-card > .slug-sync-choices,
-			.slug-sync-card > .form-table,
-			.slug-sync-card > .slug-sync-field { margin: 16px 0; }
+		$hierarchical = array();
 
-			.slug-sync-card > .form-table:first-of-type { margin-top: 8px; }
-			.slug-sync-admin .form-table > tbody > tr:first-child > th,
-			.slug-sync-admin .form-table > tbody > tr:first-child > td { padding-top: 0; }
-			.slug-sync-admin .form-table > tbody > tr:last-child > th,
-			.slug-sync-admin .form-table > tbody > tr:last-child > td { padding-bottom: 0; }
+		foreach ( array_keys( self::post_types() ) as $type_name ) {
+			$hierarchical[ $type_name ] = is_post_type_hierarchical( $type_name );
+		}
 
-			/* One size for explanatory text everywhere on the screen. wp-admin
-			   ships several and they were all showing up at once. */
-			.slug-sync-admin .description,
-			.slug-sync-admin .slug-sync-choice-help,
-			.slug-sync-admin p { font-size: 14px; line-height: 1.55; }
-			.slug-sync-admin .slug-sync-card > p,
-			.slug-sync-admin .slug-sync-intro > p { font-size: 14px; }
-			.slug-sync-admin .form-table th { font-size: 14px; padding-top: 18px; width: 180px; }
-			.slug-sync-admin .form-table td { padding-top: 14px; padding-bottom: 14px; }
-			.slug-sync-admin .form-table td .description { margin: 6px 0 0; }
-
-			/* Labelled field inside a cell, so a control and its instructions
-			   stay together instead of the help drifting to the next field. */
-			.slug-sync-field { margin: 14px 0 0; }
-			.slug-sync-field label { display: block; margin-bottom: 5px; }
-
-			/* A save button is a button. It was rendering as flat text next to
-			   controls that all look like buttons. */
-			.slug-sync-admin .button-primary.slug-sync-save {
-				background: var(--ss-navy);
-				border-color: var(--ss-navy);
-				box-shadow: none;
-			}
-			.slug-sync-admin .button-primary.slug-sync-save:hover {
-				background: var(--ss-navy);
-				border-color: var(--ss-navy);
-				filter: brightness(1.35);
-			}
-
-			/* Worked example under a heading. */
-			/* A block inside a disclosure panel. Not a card -- a card inside a
-			   card reads as a second layer of boxes rather than a section. */
-			.slug-sync-sub { padding: 4px 0 18px; }
-			.slug-sync-sub + .slug-sync-sub { border-top: 1px solid var(--ss-line); padding-top: 18px; }
-			.slug-sync-sub > h2 {
-				color: var(--ss-navy);
-				font-size: 15px;
-				font-weight: 700;
-				margin: 0 0 4px;
-				padding: 0;
-			}
-			.slug-sync-sub > h2 + p { margin-top: 0; }
-
-			.slug-sync-eg {
-				background: var(--ss-bg-2);
-				border-radius: var(--ss-r-sm);
-				font-size: 13px;
-				padding: 12px 14px;
-			}
-			.slug-sync-pro-slider { margin: 18px 0; min-width: 0; }
-			.slug-sync-pro-grid {
-				display: grid;
-				grid-auto-columns: calc((100% - 36px) / 4);
-				grid-auto-flow: column;
-				gap: 12px;
-				list-style: none;
-				margin: 0;
-				overflow-x: auto;
-				overflow-y: hidden;
-				overscroll-behavior-inline: contain;
-				padding: 0;
-				scroll-behavior: smooth;
-				scroll-snap-type: x mandatory;
-				scrollbar-width: none;
-			}
-			.slug-sync-pro-grid::-webkit-scrollbar { display: none; }
-			.slug-sync-pro-grid > li {
-				background: var(--ss-accent-soft);
-				border: 1px solid var(--ss-line);
-				border-top: 3px solid var(--ss-accent);
-				border-radius: var(--ss-r-sm);
-				box-sizing: border-box;
-				box-shadow: 0 12px 28px -24px rgba(11, 15, 67, .6);
-				display: flex;
-				flex-direction: column;
-				margin: 0;
-				min-width: 0;
-				padding: 20px;
-				scroll-snap-align: start;
-				scroll-snap-stop: always;
-			}
-			.slug-sync-pro-grid strong { color: var(--ss-navy); display: block; font-size: 15px; margin-bottom: 7px; }
-			.slug-sync-pro-grid p { color: var(--ss-muted); font-size: 14px; margin: 0 0 14px; }
-			.slug-sync-pro-grid code {
-				border: 1px solid var(--ss-line);
-				color: var(--ss-navy);
-				flex: 0 0 auto;
-				padding: 3px 6px;
-				white-space: nowrap;
-			}
-			.slug-sync-pro-icon {
-				align-items: center;
-				background: var(--ss-navy);
-				border-radius: 10px;
-				color: var(--ss-accent);
-				display: inline-flex;
-				height: 42px;
-				justify-content: center;
-				margin-bottom: 14px;
-				width: 42px;
-			}
-			.slug-sync-pro-icon svg { display: block; height: 22px; width: 22px; }
-			.slug-sync-pro-location {
-				color: var(--ss-accent-ink);
-				display: block;
-				font-size: 11px;
-				font-weight: 700;
-				letter-spacing: .08em;
-				margin-bottom: 8px;
-				text-transform: uppercase;
-			}
-			.slug-sync-pro-example {
-				align-items: center;
-				background: var(--ss-accent-soft);
-				border: 1px solid var(--ss-line);
-				border-radius: 8px;
-				display: flex;
-				flex-wrap: nowrap;
-				gap: 4px;
-				line-height: 1.7;
-				margin-top: auto;
-				overflow-x: auto;
-				overscroll-behavior-inline: contain;
-				padding: 10px;
-				white-space: nowrap;
-			}
-			.slug-sync-pro-example .arrow { color: var(--ss-accent-ink); flex: 0 0 auto; font-weight: 700; padding: 0 4px; }
-			.slug-sync-pro-slider-controls { align-items: center; display: flex; gap: 10px; justify-content: center; margin-top: 14px; }
-			.slug-sync-admin .slug-sync-pro-slider-button {
-				background: var(--ss-navy);
-				border-color: var(--ss-navy);
-				color: var(--ss-accent);
-				height: 42px;
-				min-height: 42px;
-				padding: 0;
-				width: 42px;
-			}
-			.slug-sync-admin .slug-sync-pro-slider-button:hover { background: var(--ss-navy); border-color: var(--ss-navy); color: var(--ss-accent); filter: brightness(1.3); }
-			.slug-sync-pro-slider-button:disabled { cursor: default; opacity: .32; transform: none; }
-			.slug-sync-pro-slider-button svg { height: 18px; width: 18px; }
-			.slug-sync-pro-slider-prev svg { transform: rotate(180deg); }
-			.slug-sync-pro-slider-count { color: var(--ss-muted); font-size: 13px; font-weight: 600; min-width: 84px; text-align: center; }
-			.slug-sync-card > .slug-sync-pro-status {
-				align-items: center;
-				background: var(--ss-navy);
-				border-radius: 999px;
-				color: #fff;
-				display: inline-flex;
-				font-size: 12px;
-				flex-wrap: wrap;
-				gap: 5px;
-				line-height: 1.4;
-				margin: 0;
-				max-width: calc(100% - 48px);
-				padding: 7px 11px;
-				position: absolute;
-				right: 24px;
-				top: 24px;
-				width: fit-content;
-			}
-			.slug-sync-pro-status strong { color: #fff; }
-			.slug-sync-pro-cta { font-size: 14px; min-height: 46px; padding: 11px 22px; }
-			.slug-sync-pro-cta::after { content: "\2192"; font-size: 17px; line-height: 1; margin-left: 8px; }
-			@media (max-width: 1200px) {
-				.slug-sync-pro-grid { grid-auto-columns: calc((100% - 24px) / 3); }
-			}
-			@media (max-width: 900px) {
-				.slug-sync-pro-grid { grid-auto-columns: calc((100% - 12px) / 2); }
-			}
-			@media (prefers-reduced-motion: reduce) {
-				.slug-sync-pro-grid { scroll-behavior: auto; }
-			}
-			.slug-sync-findings {
-				border-top: 1px solid var(--ss-line);
-				margin-top: 20px;
-				padding-top: 18px;
-			}
-			.slug-sync-findings-head {
-				align-items: center;
-				display: flex;
-				flex-wrap: wrap;
-				gap: 10px;
-				justify-content: space-between;
-				margin-bottom: 10px;
-			}
-			.slug-sync-findings-head h3 { color: var(--ss-navy); font-size: 15px; margin: 0; }
-			.slug-sync-findings-count {
-				background: var(--ss-navy);
-				border-radius: 999px;
-				color: #fff;
-				font-size: 12px;
-				font-weight: 700;
-				padding: 5px 10px;
-			}
-			.slug-sync-findings-note { color: var(--ss-muted); margin: 0 0 12px; }
-			.slug-sync-findings-list {
-				display: grid;
-				gap: 7px;
-				list-style: none;
-				margin: 0;
-				max-height: 330px;
-				overflow-y: auto;
-				padding: 1px 4px 1px 1px;
-			}
-			.slug-sync-finding {
-				align-items: center;
-				background: #fff;
-				border: 1px solid var(--ss-line);
-				border-radius: 9px;
-				display: grid;
-				gap: 10px;
-				grid-template-columns: minmax(140px, .7fr) minmax(260px, 1.5fr) auto;
-				margin: 0;
-				padding: 10px 12px;
-			}
-			.slug-sync-finding-title { color: var(--ss-navy); font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
-			.slug-sync-finding-route { align-items: center; display: flex; flex-wrap: nowrap; gap: 7px; min-width: 0; overflow-x: auto; overscroll-behavior-inline: contain; white-space: nowrap; }
-			.slug-sync-finding-route code { flex: 0 0 auto; white-space: nowrap; }
-			.slug-sync-finding-arrow { color: var(--ss-accent-ink); font-weight: 700; }
-			.slug-sync-finding-new {
-				background: var(--ss-accent);
-				border-radius: 999px;
-				color: #fff;
-				font-size: 10px;
-				font-weight: 700;
-				letter-spacing: .06em;
-				padding: 4px 8px;
-				text-transform: uppercase;
-				white-space: nowrap;
-			}
-			.slug-sync-batch-messages {
-				background: #fcf0f1;
-				border: 1px solid var(--ss-line);
-				border-radius: var(--ss-r-sm);
-				margin-top: 12px;
-				padding: 12px 14px;
-			}
-			.slug-sync-batch-messages strong { color: #8a2424; }
-			.slug-sync-batch-messages ul { margin-bottom: 0; }
-			.slug-sync-pro-running {
-				align-items: flex-start;
-				background: var(--ss-accent-soft);
-				border: 1px solid var(--ss-line);
-				border-radius: var(--ss-r-sm);
-				display: grid;
-				gap: 5px;
-				margin-top: 16px;
-				padding: 14px 16px;
-			}
-			.slug-sync-pro-running .slug-sync-eyebrow { margin-bottom: 2px; }
-			.slug-sync-pro-running strong { color: var(--ss-navy); font-size: 14px; }
-			.slug-sync-pro-running p { color: var(--ss-muted); margin: 0; }
-			.slug-sync-technical { margin-top: 6px; }
-			.slug-sync-technical summary { color: var(--ss-dim); cursor: pointer; font-size: 12px; }
-			@media (max-width: 782px) {
-				.slug-sync-brand img { height: 28px; }
-				.slug-sync-steps { grid-template-columns: 1fr; }
-				.slug-sync-select { max-width: 100%; min-width: 0; width: 100%; }
-				.slug-sync-card { padding: 16px; }
-				.slug-sync-history-panel { padding: 16px; }
-				.slug-sync-admin .button { width: 100%; }
-				.slug-sync-controls form,
-				.slug-sync-report-actions { width: 100%; }
-				.slug-sync-admin .slug-sync-pro-slider-button { width: 42px; }
-				.slug-sync-card > .slug-sync-pro-status {
-					margin-bottom: 16px;
-					max-width: 100%;
-					position: static;
-				}
-				.slug-sync-finding { grid-template-columns: 1fr; }
-				.slug-sync-finding-new { justify-self: start; }
-			}
-			@media (max-width: 600px) {
-				.slug-sync-pro-grid { grid-auto-columns: 100%; }
-			}
-		</style>
-		<?php
+		wp_localize_script(
+			'slug-sync-admin',
+			'SlugSyncAdmin',
+			array(
+				'text'         => array(
+					'preview_button' => __( 'Create preview', 'slug-sync' ),
+					'apply_button'   => __( 'Apply slug changes', 'slug-sync' ),
+					'preview_write'  => __( 'This choice has no effect during a preview because nothing is saved.', 'slug-sync' ),
+					'apply_write'    => __( 'This choice controls how each slug is saved during Apply.', 'slug-sync' ),
+					'confirm_apply'  => __( 'Apply will begin changing slugs immediately. Have you reviewed a preview and taken a database backup?', 'slug-sync' ),
+				),
+				'hierarchical' => $hierarchical,
+			)
+		);
 	}
 
 	/**
@@ -2168,8 +1547,6 @@ class Slug_Sync {
 			esc_url( plugins_url( 'assets/logo.png', __FILE__ ) ),
 			esc_attr__( 'Slug Sync', 'slug-sync' )
 		);
-		self::render_styles();
-
 		$ran_batch = false;
 
 		if ( isset( $_POST['slug_sync_cancel'] ) ) {
@@ -2422,38 +1799,12 @@ class Slug_Sync {
 				<input type="hidden" name="run_id" value="<?php echo esc_attr( $run_id ); ?>">
 				<button class="button button-primary"><?php echo esc_html( $auto ? __( 'Continue', 'slug-sync' ) : __( 'Resume run', 'slug-sync' ) ); ?></button>
 			</form>
-			<form class="slug-sync-stop-form" method="post" action="<?php echo esc_url( self::page_url() ); ?>" onsubmit="return confirm('<?php echo esc_js( __( 'Stop this run? Work already completed will not be reversed, and the partial reports will be kept.', 'slug-sync' ) ); ?>');">
+			<form class="slug-sync-stop-form slug-sync-confirm-form" method="post" action="<?php echo esc_url( self::page_url() ); ?>" data-confirm="<?php echo esc_attr__( 'Stop this run? Work already completed will not be reversed, and the partial reports will be kept.', 'slug-sync' ); ?>">
 				<?php wp_nonce_field( 'slug_sync' ); ?>
 				<input type="hidden" name="run_id" value="<?php echo esc_attr( $run_id ); ?>">
 				<button class="button" name="slug_sync_cancel" value="1"><?php esc_html_e( 'Stop run', 'slug-sync' ); ?></button>
 			</form>
 		</div>
-		<?php if ( $auto ) : ?>
-			<script>
-			(function(){
-				var next = document.getElementById('slug-sync-next');
-				var timer;
-				var stopAuto = function(event){
-					if (event.target.closest && event.target.closest('.slug-sync-stop-form')) {
-						window.clearTimeout(timer);
-						next.setAttribute('data-auto-stopped', '1');
-					}
-				};
-
-				/* Stop controls later in the document (including run history) count
-				 * too. Delegation also covers keyboard and assistive-technology use. */
-				document.addEventListener('focusin', stopAuto);
-				document.addEventListener('pointerdown', stopAuto);
-				document.addEventListener('submit', stopAuto);
-
-				timer = window.setTimeout(function(){
-					if (!next.hasAttribute('data-auto-stopped')) {
-						next.submit();
-					}
-				}, 5000);
-			})();
-			</script>
-		<?php endif; ?>
 		<?php
 	}
 
@@ -2555,7 +1906,7 @@ class Slug_Sync {
 					<?php if ( $is_active ) : ?>
 						<?php self::run_controls( $run ); ?>
 					<?php elseif ( $is_apply && $changed > 0 && 'rolled_back' !== $status && is_file( $changes ) ) : ?>
-						<form method="post" action="<?php echo esc_url( self::page_url() ); ?>" onsubmit="return confirm('<?php echo esc_js( __( 'Undo the slug changes from this run? Items edited since the run will be left unchanged.', 'slug-sync' ) ); ?>');">
+						<form class="slug-sync-confirm-form" method="post" action="<?php echo esc_url( self::page_url() ); ?>" data-confirm="<?php echo esc_attr__( 'Undo the slug changes from this run? Items edited since the run will be left unchanged.', 'slug-sync' ); ?>">
 							<?php wp_nonce_field( 'slug_sync' ); ?>
 							<input type="hidden" name="run_id" value="<?php echo esc_attr( $run_id ); ?>">
 							<button class="button button-small" name="slug_sync_rollback" value="1"><?php esc_html_e( 'Undo changes', 'slug-sync' ); ?></button>
@@ -2625,7 +1976,7 @@ class Slug_Sync {
 			'</p>';
 
 		?>
-		<form method="post" action="<?php echo esc_url( self::page_url() ); ?>" onsubmit="return confirm('<?php echo esc_js( __( 'Undo the slug changes recorded in this earlier report?', 'slug-sync' ) ); ?>');">
+		<form class="slug-sync-confirm-form" method="post" action="<?php echo esc_url( self::page_url() ); ?>" data-confirm="<?php echo esc_attr__( 'Undo the slug changes recorded in this earlier report?', 'slug-sync' ); ?>">
 			<?php wp_nonce_field( 'slug_sync' ); ?>
 			<p><button class="button" name="slug_sync_rollback" value="1"><?php esc_html_e( 'Undo changes from this report', 'slug-sync' ); ?></button></p>
 		</form>
@@ -2670,23 +2021,9 @@ class Slug_Sync {
 			return;
 		}
 
-		$types          = self::post_types();
-		$default        = self::default_type();
-		$batch_size     = self::batch_size();
-		$interface_text = array(
-			'preview_button' => __( 'Create preview', 'slug-sync' ),
-			'apply_button'   => __( 'Apply slug changes', 'slug-sync' ),
-			'preview_write'  => __( 'This choice has no effect during a preview because nothing is saved.', 'slug-sync' ),
-			'apply_write'    => __( 'This choice controls how each slug is saved during Apply.', 'slug-sync' ),
-			'confirm_apply'  => __( 'Apply will begin changing slugs immediately. Have you reviewed a preview and taken a database backup?', 'slug-sync' ),
-		);
-
-		// Drives the note below, and is read again by the script at the end.
-		$hierarchical = array();
-
-		foreach ( array_keys( $types ) as $type_name ) {
-			$hierarchical[ $type_name ] = is_post_type_hierarchical( $type_name );
-		}
+		$types      = self::post_types();
+		$default    = self::default_type();
+		$batch_size = self::batch_size();
 		?>
 		<div class="slug-sync-intro">
 			<p><strong><?php esc_html_e( 'Make URL slugs match content titles—safely and in batches.', 'slug-sync' ); ?></strong></p>
@@ -2759,7 +2096,7 @@ class Slug_Sync {
 
 			<section class="slug-sync-sub" aria-labelledby="slug-sync-write-heading">
 				<h2 id="slug-sync-write-heading"><?php esc_html_e( 'How each change is saved', 'slug-sync' ); ?></h2>
-				<p id="slug-sync-write-help"><?php echo esc_html( $interface_text['preview_write'] ); ?></p>
+				<p id="slug-sync-write-help"><?php esc_html_e( 'This choice has no effect during a preview because nothing is saved.', 'slug-sync' ); ?></p>
 				<div class="slug-sync-choices">
 					<label class="slug-sync-choice">
 						<input type="radio" name="write" value="quiet" checked>
@@ -2826,45 +2163,10 @@ class Slug_Sync {
 			</div>
 
 			<div class="slug-sync-actions">
-				<button class="button button-primary" id="slug-sync-start-button" name="slug_sync_run" value="1"><?php echo esc_html( $interface_text['preview_button'] ); ?></button>
+				<button class="button button-primary" id="slug-sync-start-button" name="slug_sync_run" value="1"><?php esc_html_e( 'Create preview', 'slug-sync' ); ?></button>
 				<span class="description"><?php esc_html_e( 'Large sites continue automatically in small batches.', 'slug-sync' ); ?></span>
 			</div>
 		</form>
-		<script>
-		(function(){
-			var form = document.getElementById('slug-sync-start-form');
-			if (!form) { return; }
-			var text = <?php echo wp_json_encode( $interface_text, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- JSON encoded for JavaScript. ?>;
-			var button = document.getElementById('slug-sync-start-button');
-			var writeHelp = document.getElementById('slug-sync-write-help');
-			var applyNote = document.getElementById('slug-sync-apply-note');
-			var safety = document.getElementById('slug-sync-safety');
-			var hierarchical = <?php echo wp_json_encode( $hierarchical, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- JSON encoded for JavaScript. ?>;
-			var typeSelect = document.getElementById('slug-sync-post-type');
-			var hierarchyNote = document.getElementById('slug-sync-hierarchy-note');
-			function applying(){
-				var selected = form.querySelector('input[name="mode"]:checked');
-				return selected && selected.value === 'apply';
-			}
-			function update(){
-				var isApply = applying();
-				button.textContent = isApply ? text.apply_button : text.preview_button;
-				writeHelp.textContent = isApply ? text.apply_write : text.preview_write;
-				applyNote.hidden = !isApply;
-				if (safety) { safety.hidden = !isApply; }
-				if (typeSelect && hierarchyNote) {
-					hierarchyNote.hidden = !hierarchical[typeSelect.value];
-				}
-			}
-			form.addEventListener('change', function(event){
-				if (event.target.name === 'mode' || event.target.name === 'post_type') { update(); }
-			});
-			form.addEventListener('submit', function(event){
-				if (applying() && !window.confirm(text.confirm_apply)) { event.preventDefault(); }
-			});
-			update();
-		})();
-		</script>
 		<?php
 	}
 
@@ -2962,10 +2264,6 @@ class Slug_Sync {
 				esc_html__( 'This run cannot resume because one of its report files is missing. Stop it before starting another run.', 'slug-sync' ) .
 				'</p></div>';
 			return;
-		}
-
-		if ( ! $apply && is_file( $changes_path ) && (int) filesize( $changes_path ) > 0 ) {
-			self::restore_claims( $run_id, $changes_path );
 		}
 
 		// $statuses is a hardcoded literal array (see above), so $placeholders is only
@@ -3079,6 +2377,10 @@ class Slug_Sync {
 
 		$reported_rows = self::report_rows_by_id( $changes_path );
 		$journal_rows  = self::report_rows_by_id( $journal_path );
+
+		if ( ! $apply ) {
+			self::restore_claims( $run_id, $reported_rows );
+		}
 
 		$log            = array();
 		$batch_findings = array();
@@ -3340,9 +2642,6 @@ class Slug_Sync {
 		if ( $finished ) {
 			self::clear_active_run( $run_id );
 			self::reset_claims( $run_id );
-		} else {
-			// One write per batch rather than one per post; see flush_claims().
-			self::flush_claims( $run_id, $changes_path );
 		}
 
 		if ( is_file( $journal_path ) ) {
@@ -3614,41 +2913,6 @@ class Slug_Sync {
 				<button class="button slug-sync-pro-slider-button" id="slug-sync-pro-next" type="button" aria-label="<?php esc_attr_e( 'Next Pro features', 'slug-sync' ); ?>" aria-controls="slug-sync-pro-slider"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3 10h13M11.5 5.5L17 10l-5.5 4.5"/></svg></button>
 			</div>
 		</div>
-		<script>
-		(function(){
-			var slider = document.getElementById('slug-sync-pro-slider');
-			var previous = document.getElementById('slug-sync-pro-prev');
-			var next = document.getElementById('slug-sync-pro-next');
-			var current = document.getElementById('slug-sync-pro-current');
-			var cards = slider ? slider.children : [];
-
-			if (!slider || !cards.length) { return; }
-
-			function metrics(){
-				var gap = parseFloat(window.getComputedStyle(slider).columnGap) || 0;
-				var step = cards[0].getBoundingClientRect().width + gap;
-				var visible = Math.max(1, Math.floor((slider.clientWidth + gap + 1) / step));
-				return {step: step, visible: visible};
-			}
-			function update(){
-				var size = metrics();
-				var start = Math.min(cards.length - 1, Math.max(0, Math.round(slider.scrollLeft / size.step)));
-				var end = Math.min(cards.length, start + size.visible);
-				current.textContent = (start + 1) + (end > start + 1 ? '–' + end : '');
-				previous.disabled = start === 0;
-				next.disabled = end >= cards.length;
-			}
-			function move(direction){
-				var size = metrics();
-				slider.scrollBy({left: direction * size.step * size.visible, behavior: 'smooth'});
-			}
-			previous.addEventListener('click', function(){ move(-1); });
-			next.addEventListener('click', function(){ move(1); });
-			slider.addEventListener('scroll', update, {passive: true});
-			window.addEventListener('resize', update);
-			update();
-		})();
-		</script>
 		<?php
 	}
 
@@ -4031,7 +3295,7 @@ class Slug_Sync {
 		echo '</p></div>';
 
 		if ( $log ) {
-			echo '<pre style="max-height:300px;overflow:auto;background:#fff;padding:12px;border:1px solid #ccd0d4;">';
+			echo '<pre class="slug-sync-log">';
 			echo esc_html( implode( "\n", $log ) );
 			echo '</pre>';
 		}

@@ -7,7 +7,6 @@ Requires PHP: 7.4
 Stable tag: 1.0.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
-Author: Armin Kapetanovic
 
 Rewrite post, page and product slugs to match their titles, without breaking the URLs you already have indexed.
 

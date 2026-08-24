@@ -71,4 +71,19 @@ final class PreviewClaimsTest extends TestCase {
 		$this->assertSame( 'replacement', $this->preview( 'replacement', $first, 'release' ) );
 		$this->assertSame( 'vacated', $this->preview( 'vacated', $second, 'release' ) );
 	}
+
+	public function test_prior_batch_claims_are_restored_from_loaded_report_rows_without_a_transient() {
+		$this->post( 10, 'vacated' );
+		$second = $this->post( 11, 'other' );
+		$rows   = array(
+			10 => array( 10, 'post', 'publish', 'First', 'vacated', 'replacement', '/vacated', '/replacement', '', 0 ),
+		);
+
+		$restore = ( new ReflectionClass( 'Slug_Sync' ) )->getMethod( 'restore_claims' );
+		$restore->setAccessible( true );
+		$restore->invoke( null, 'report-restore', $rows );
+
+		$this->assertSame( 'vacated', $this->preview( 'vacated', $second, 'report-restore' ) );
+		$this->assertArrayNotHasKey( 'slug_sync_claimed_report-restore', $GLOBALS['slug_sync_test_transients'] );
+	}
 }

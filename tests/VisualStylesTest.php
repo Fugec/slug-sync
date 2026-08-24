@@ -5,11 +5,7 @@ use PHPUnit\Framework\TestCase;
 final class VisualStylesTest extends TestCase {
 
 	private function styles() {
-		$method = ( new ReflectionClass( 'Slug_Sync' ) )->getMethod( 'render_styles' );
-		$method->setAccessible( true );
-		ob_start();
-		$method->invoke( null );
-		return ob_get_clean();
+		return file_get_contents( dirname( __DIR__ ) . '/assets/admin.css' );
 	}
 
 	public function test_brand_pass_keeps_the_screen_full_width() {
