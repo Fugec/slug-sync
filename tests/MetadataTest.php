@@ -11,7 +11,8 @@ final class MetadataTest extends TestCase {
 
 		$this->assertStringContainsString( 'Plugin URI:        https://slugsync.com/', $plugin );
 		$this->assertStringContainsString( 'Author:            Slug Sync', $plugin );
-		$this->assertStringContainsString( 'Author URI:        https://slugsync.com/', $plugin );
+		$this->assertStringNotContainsString( 'Author URI:', $plugin );
+		$this->assertStringNotContainsString( '#. Author URI of the plugin', $pot );
 		$this->assertStringContainsString( 'Contributors: arminkapetanovic', $readme );
 		// The header, not the word: readme prose is free to mention an author.
 		$this->assertDoesNotMatchRegularExpression( '/^Author:/m', $readme );

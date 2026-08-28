@@ -25,7 +25,6 @@ msgid "Slug Sync"
 msgstr ""
 
 #. Plugin URI of the plugin
-#. Author URI of the plugin
 msgid "https://slugsync.com/"
 msgstr ""
 
