@@ -17,7 +17,7 @@ rather than inside it:
 | `banner-1544x500.png` | Listing header, high resolution. |
 | `icon-128x128.gif` | Plugin icon, standard resolution. Animated. |
 | `icon-256x256.gif` | Plugin icon, high resolution. Animated. |
-| `screenshot-1.png` … `screenshot-5.png` | Listing screenshots. |
+| `screenshot-1.png` … `screenshot-9.png` | Listing screenshots. |
 
 Only one raster format is supplied per icon size, which is what the handbook
 expects; a PNG fallback is required only alongside `icon.svg`, and there is no

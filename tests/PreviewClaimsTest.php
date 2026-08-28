@@ -5,12 +5,17 @@ use PHPUnit\Framework\TestCase;
 final class PreviewClaimsTest extends TestCase {
 
 	private $claim;
+	private $claim_result;
 
 	protected function setUp(): void {
 		$GLOBALS['slug_sync_test_posts']      = array();
 		$GLOBALS['slug_sync_test_transients'] = array();
-		$this->claim = ( new ReflectionClass( 'Slug_Sync' ) )->getMethod( 'claim' );
+		$GLOBALS['slug_sync_test_filters']    = array();
+		$reflection = new ReflectionClass( 'Slug_Sync' );
+		$this->claim = $reflection->getMethod( 'claim' );
 		$this->claim->setAccessible( true );
+		$this->claim_result = $reflection->getMethod( 'claim_result' );
+		$this->claim_result->setAccessible( true );
 	}
 
 	private function post( $id, $slug, $type = 'post', $status = 'publish', $parent = 0 ) {
@@ -27,6 +32,20 @@ final class PreviewClaimsTest extends TestCase {
 
 	private function preview( $target, $post, $run_id ) {
 		return $this->claim->invoke(
+			null,
+			$target,
+			$post->ID,
+			$post->post_status,
+			$post->post_type,
+			$post->post_parent,
+			true,
+			$run_id,
+			$post->post_name
+		);
+	}
+
+	private function preview_result( $target, $post, $run_id ) {
+		return $this->claim_result->invoke(
 			null,
 			$target,
 			$post->ID,
@@ -85,5 +104,54 @@ final class PreviewClaimsTest extends TestCase {
 
 		$this->assertSame( 'vacated', $this->preview( 'vacated', $second, 'report-restore' ) );
 		$this->assertArrayNotHasKey( 'slug_sync_claimed_report-restore', $GLOBALS['slug_sync_test_transients'] );
+	}
+
+	public function test_existing_database_slug_has_a_specific_reason() {
+		$this->post( 20, 'shared' );
+		$post = $this->post( 21, 'old' );
+
+		$this->assertSame(
+			array( 'slug' => 'shared-2', 'reason' => 'existing_slug' ),
+			$this->preview_result( 'shared', $post, 'existing-reason' )
+		);
+	}
+
+	public function test_another_item_in_the_same_preview_has_a_specific_reason() {
+		$first  = $this->post( 22, 'old-a' );
+		$second = $this->post( 23, 'old-b' );
+
+		$this->assertSame( array( 'slug' => 'shared', 'reason' => '' ), $this->preview_result( 'shared', $first, 'preview-reason' ) );
+		$this->assertSame(
+			array( 'slug' => 'shared-2', 'reason' => 'preview_claim' ),
+			$this->preview_result( 'shared', $second, 'preview-reason' )
+		);
+	}
+
+	public function test_reserved_and_date_archive_targets_have_distinct_reasons() {
+		$reserved = $this->post( 24, 'old-feed' );
+		$archive  = $this->post( 25, 'old-number' );
+
+		$this->assertSame(
+			array( 'slug' => 'feed-2', 'reason' => 'reserved_word' ),
+			$this->preview_result( 'feed', $reserved, 'reserved-reason' )
+		);
+		$this->assertSame(
+			array( 'slug' => '12-2', 'reason' => 'date_archive' ),
+			$this->preview_result( '12', $archive, 'archive-reason' )
+		);
+	}
+
+	public function test_custom_bad_slug_filter_is_identified() {
+		$GLOBALS['slug_sync_test_filters']['wp_unique_post_slug_is_bad_flat_slug'] = array(
+			static function () {
+				return true;
+			},
+		);
+		$post = $this->post( 26, 'old-filtered' );
+
+		$this->assertSame(
+			array( 'slug' => 'filtered-2', 'reason' => 'custom_filter' ),
+			$this->preview_result( 'filtered', $post, 'filter-reason' )
+		);
 	}
 }

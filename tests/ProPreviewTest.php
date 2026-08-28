@@ -75,7 +75,23 @@ final class ProPreviewTest extends TestCase {
 		$this->assertFalse( $result['product'] );
 		$this->assertSame( 2, $result['code'] );
 		$this->assertSame( 3, $result['stopword'] );
-		$this->assertSame( 4, $result['non_latin'] );
+		$this->assertArrayNotHasKey( 'non_latin', $result );
+	}
+
+	public function test_non_latin_titles_alone_do_not_upsell_a_feature_free_now_includes() {
+		$this->assertSame(
+			array(),
+			$this->context(
+				array(
+					'mode'            => 'dry',
+					'post_type'       => 'post',
+					'sig_code'        => 0,
+					'sig_stopword'    => 0,
+					'sig_non_latin'   => 4,
+					'transliterate'   => true,
+				)
+			)
+		);
 	}
 
 	public function test_apply_run_never_shows_the_commercial_surface() {
@@ -105,6 +121,22 @@ final class ProPreviewTest extends TestCase {
 		);
 		$GLOBALS['slug_sync_test_options']['slug_sync_runs'] = array( 'preview-123' => $run );
 		$_GET['slug_sync_preview'] = 'preview-123';
+		$_GET['_wpnonce']          = 'testnonce';
+
+		$this->assertSame( $run, $this->returned->invoke( null ) );
+	}
+
+	public function test_completed_plain_preview_can_restore_its_apply_choices() {
+		$run = array(
+			'id'            => 'preview-plain',
+			'status'        => 'completed',
+			'mode'          => 'dry',
+			'post_type'     => 'post',
+			'transliterate' => true,
+			'remove_sku'    => false,
+		);
+		$GLOBALS['slug_sync_test_options']['slug_sync_runs'] = array( 'preview-plain' => $run );
+		$_GET['slug_sync_preview'] = 'preview-plain';
 		$_GET['_wpnonce']          = 'testnonce';
 
 		$this->assertSame( $run, $this->returned->invoke( null ) );
@@ -163,22 +195,38 @@ final class ProPreviewTest extends TestCase {
 		$this->assertStringNotContainsString( 'slug-sync-pro-preview', $html );
 		$this->assertLessThan( strpos( $html, 'class="slug-sync-eyebrow"' ), strpos( $html, 'class="slug-sync-pro-status"' ) );
 		$this->assertStringContainsString( 'class="slug-sync-pro-grid"', $html );
-		$this->assertSame( 10, substr_count( $html, 'class="slug-sync-pro-icon"' ) );
+		$this->assertSame( 8, substr_count( $html, 'class="slug-sync-pro-icon"' ) );
+		$this->assertStringNotContainsString( 'Remove unwanted text from URLs', $html );
+		$this->assertStringNotContainsString( 'Transliterate complete product and term URLs', $html );
 		$this->assertStringContainsString( 'id="slug-sync-pro-slider"', $html );
 		$this->assertStringContainsString( 'id="slug-sync-pro-prev"', $html );
 		$this->assertStringContainsString( 'id="slug-sync-pro-next"', $html );
 		$this->assertStringContainsString( 'class="button button-primary slug-sync-pro-cta"', $html );
+		$this->assertStringContainsString( 'See all Pro features', $html );
+		$this->assertStringContainsString( 'https://slugsync.com/#gap', $html );
+		$this->assertStringNotContainsString( 'https://slugsync.com/pro/', $html );
+		$this->assertStringContainsString( 'class="slug-sync-pro-footer"', $html );
+		$this->assertStringContainsString( 'Opens slugsync.com', $html );
+		// The one control that leaves WordPress says so, and says where to.
+		$this->assertLessThan( strpos( $html, 'Opens slugsync.com' ), strpos( $html, 'class="slug-sync-pro-grid"' ) );
 	}
 
-	public function test_running_preview_uses_a_compact_non_clicking_pro_teaser() {
-		$method = ( new ReflectionClass( 'Slug_Sync' ) )->getMethod( 'running_pro_teaser' );
+	public function test_reading_list_stops_selling_pro_once_pro_is_installed() {
+		$method = ( new ReflectionClass( 'Slug_Sync' ) )->getMethod( 'run_modal_reading' );
 		$method->setAccessible( true );
-		ob_start();
-		$method->invoke( null );
-		$html = ob_get_clean();
 
-		$this->assertStringContainsString( 'class="slug-sync-pro-running"', $html );
-		$this->assertStringContainsString( 'Full examples appear when the preview finishes.', $html );
-		$this->assertStringNotContainsString( '<a ', $html );
+		ob_start();
+		$method->invoke( null, 0 );
+		$free_only = ob_get_clean();
+
+		$GLOBALS['slug_sync_test_filters']['slug_sync_source_title'] = true;
+		ob_start();
+		$method->invoke( null, 0 );
+		$with_pro = ob_get_clean();
+		$GLOBALS['slug_sync_test_filters'] = array();
+
+		$this->assertStringContainsString( 'class="slug-sync-modal-reading"', $free_only );
+		$this->assertStringNotContainsString( 'slug-sync-modal-read--pro', $with_pro );
+		$this->assertStringNotContainsString( '<a ', $free_only );
 	}
 }

@@ -34,6 +34,7 @@ final class AssetLoadingTest extends TestCase {
 		$this->assertSame( 'SlugSyncAdmin', $GLOBALS['slug_sync_test_script_data']['slug-sync-admin']['object_name'] );
 		$this->assertTrue( $GLOBALS['slug_sync_test_script_data']['slug-sync-admin']['data']['hierarchical']['page'] );
 		$this->assertFalse( $GLOBALS['slug_sync_test_script_data']['slug-sync-admin']['data']['hierarchical']['post'] );
+		$this->assertSame( 'product', $GLOBALS['slug_sync_test_script_data']['slug-sync-admin']['data']['productType'] );
 		$this->assertSame(
 			'Apply slug changes',
 			$GLOBALS['slug_sync_test_script_data']['slug-sync-admin']['data']['text']['apply_button']

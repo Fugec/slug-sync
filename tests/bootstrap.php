@@ -16,9 +16,12 @@ define( 'DAY_IN_SECONDS', 86400 );
 $GLOBALS['slug_sync_test_transients'] = array();
 $GLOBALS['slug_sync_test_posts']      = array();
 $GLOBALS['slug_sync_test_options']    = array();
+$GLOBALS['slug_sync_test_meta']       = array();
 $GLOBALS['slug_sync_test_styles']     = array();
 $GLOBALS['slug_sync_test_scripts']    = array();
 $GLOBALS['slug_sync_test_script_data'] = array();
+$GLOBALS['slug_sync_test_filters']    = array();
+$GLOBALS['slug_sync_test_uploads']    = sys_get_temp_dir() . '/slug-sync-tests-' . getmypid();
 $GLOBALS['wp_rewrite']                = (object) array(
 	'feeds'           => array( 'feed', 'rss2' ),
 	'pagination_base' => 'page',
@@ -58,8 +61,8 @@ function _n( $single, $plural, $number ) {
 	return 1 === (int) $number ? $single : $plural;
 }
 
-function has_filter() {
-	return false;
+function has_filter( $hook, $callback = false ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
+	return empty( $GLOBALS['slug_sync_test_filters'][ $hook ] ) ? false : 10;
 }
 
 function esc_attr( $text ) {
@@ -86,6 +89,22 @@ function esc_html_e( $text ) {
 	echo esc_html( $text );
 }
 
+function checked( $checked, $current = true, $display = true ) {
+	$result = (string) $checked === (string) $current ? 'checked="checked"' : '';
+	if ( $display ) {
+		echo $result;
+	}
+	return $result;
+}
+
+function selected( $selected, $current = true, $display = true ) {
+	$result = (string) $selected === (string) $current ? 'selected="selected"' : '';
+	if ( $display ) {
+		echo $result;
+	}
+	return $result;
+}
+
 function esc_js( $text ) {
 	return str_replace( array( "\\", "'", "\r", "\n" ), array( "\\\\", "\\'", '\\r', '\\n' ), (string) $text );
 }
@@ -96,6 +115,35 @@ function esc_url( $url ) {
 
 function wp_nonce_field() {
 	echo '<input type="hidden" name="_wpnonce" value="testnonce">';
+}
+
+function add_query_arg( $key, $value = null, $url = '' ) {
+	$args = is_array( $key ) ? $key : array( $key => $value );
+	$url  = is_array( $key ) ? (string) $value : (string) $url;
+
+	foreach ( $args as $name => $arg ) {
+		$separator = false === strpos( $url, '?' ) ? '?' : '&';
+		$url      .= $separator . rawurlencode( $name ) . '=' . rawurlencode( (string) $arg );
+	}
+
+	return $url;
+}
+
+function trailingslashit( $path ) {
+	return rtrim( (string) $path, '/\\' ) . '/';
+}
+
+function wp_upload_dir() {
+	return array( 'basedir' => $GLOBALS['slug_sync_test_uploads'] );
+}
+
+function wp_mkdir_p( $dir ) {
+	return is_dir( $dir ) || mkdir( $dir, 0777, true );
+}
+
+function update_option( $name, $value ) {
+	$GLOBALS['slug_sync_test_options'][ $name ] = $value;
+	return true;
 }
 
 function wp_nonce_url( $url, $action = -1, $name = '_wpnonce' ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
@@ -146,12 +194,36 @@ function delete_transient( $key ) {
 	return true;
 }
 
-function apply_filters( $hook, $value ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
+
+function apply_filters( $hook, $value, ...$args ) {
+	foreach ( isset( $GLOBALS['slug_sync_test_filters'][ $hook ] ) ? (array) $GLOBALS['slug_sync_test_filters'][ $hook ] : array() as $callback ) {
+		if ( is_callable( $callback ) ) {
+			$value = $callback( $value, ...$args );
+		}
+	}
+
 	return $value;
 }
 
 function get_post( $post_id ) {
 	return isset( $GLOBALS['slug_sync_test_posts'][ $post_id ] ) ? $GLOBALS['slug_sync_test_posts'][ $post_id ] : null;
+}
+
+function get_post_meta( $post_id, $key = '', $single = false ) {
+	if ( ! isset( $GLOBALS['slug_sync_test_meta'][ $post_id ] ) ) {
+		return $single ? '' : array();
+	}
+
+	if ( '' === $key ) {
+		return $GLOBALS['slug_sync_test_meta'][ $post_id ];
+	}
+
+	if ( ! array_key_exists( $key, $GLOBALS['slug_sync_test_meta'][ $post_id ] ) ) {
+		return $single ? '' : array();
+	}
+
+	$value = $GLOBALS['slug_sync_test_meta'][ $post_id ][ $key ];
+	return $single ? $value : array( $value );
 }
 
 function get_option( $option, $default = false ) {

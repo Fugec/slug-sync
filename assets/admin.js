@@ -31,6 +31,156 @@
 		}, 5000);
 	}
 
+	var SCROLL_KEY = 'slugSyncModalScroll';
+
+	function forget() {
+		try {
+			window.sessionStorage.removeItem(SCROLL_KEY);
+		} catch (error) {
+			/* Private windows refuse session storage. Nothing here needs it. */
+		}
+	}
+
+	/* Batches advance by reloading the page, so a reader who has scrolled
+	 * down the overlay is thrown back to the top every few seconds. Browsers
+	 * restore the document's scroll, never an element's, so the overlay has
+	 * to carry its own across the reload. */
+	function keepScroll(modal) {
+		var pending = false;
+		var stored;
+
+		try {
+			stored = window.sessionStorage.getItem(SCROLL_KEY);
+		} catch (error) {
+			return;
+		}
+
+		if (stored) {
+			modal.scrollTop = parseInt(stored, 10) || 0;
+		}
+
+		modal.addEventListener('scroll', function () {
+			if (pending) {
+				return;
+			}
+
+			pending = true;
+			window.requestAnimationFrame(function () {
+				pending = false;
+
+				try {
+					window.sessionStorage.setItem(SCROLL_KEY, String(modal.scrollTop));
+				} catch (error) {
+					/* Storage filled or refused; the scroll simply resets. */
+				}
+			});
+		}, { passive: true });
+	}
+
+	function initRunModal() {
+		var modal = document.getElementById('slug-sync-run-modal');
+		var card;
+		var close;
+		var backdrop;
+
+		if (!modal) {
+			return;
+		}
+
+		card = document.getElementById('slug-sync-modal-card');
+		close = document.getElementById('slug-sync-modal-close');
+		backdrop = modal.querySelector('.slug-sync-modal-backdrop');
+
+		document.body.classList.add('slug-sync-modal-open');
+
+		/* A run still working has no close. Stop run is the way out of it,
+		 * and the admin bar is deliberately left uncovered. */
+		if (modal.getAttribute('data-state') === 'running') {
+			keepScroll(modal);
+			return;
+		}
+
+		forget();
+
+		if (card) {
+			card.focus();
+		}
+
+		function dismiss(event) {
+			var heading = document.querySelector('.slug-sync-admin .slug-sync-brand');
+
+			if (event) {
+				event.preventDefault();
+			}
+
+			modal.hidden = true;
+			document.body.classList.remove('slug-sync-modal-open');
+
+			/* The overlay was rendered by the server, so there is no trigger to
+			 * hand focus back to. Without this it lands on the body and a
+			 * keyboard user resumes from nowhere. */
+			if (heading) {
+				heading.tabIndex = -1;
+				heading.focus();
+			}
+		}
+
+		/* Without script the close is a plain link back to the screen, which
+		 * still reaches the reports through Previous runs. With script it is
+		 * cheaper to reveal the page already rendered behind it. */
+		if (close) {
+			close.addEventListener('click', dismiss);
+		}
+
+		if (backdrop) {
+			backdrop.addEventListener('click', dismiss);
+		}
+
+		document.addEventListener('keydown', function (event) {
+			if (event.key === 'Escape' && !modal.hidden) {
+				dismiss(event);
+			}
+		});
+	}
+
+	function initWorkflowSteps(form) {
+		var steps = Array.prototype.slice.call(form.querySelectorAll('[data-slug-sync-step]'));
+
+		if (!steps.length) {
+			return;
+		}
+
+		function openNext(target) {
+			var current = target.closest ? target.closest('[data-slug-sync-step]') : null;
+			var index = current ? steps.indexOf(current) : -1;
+			var next = index >= 0 ? steps[index + 1] : null;
+
+			if (!next || target.disabled) {
+				return;
+			}
+
+			next.open = true;
+			next.classList.add('is-auto-opened');
+			window.setTimeout(function () {
+				next.classList.remove('is-auto-opened');
+			}, 700);
+		}
+
+		form.addEventListener('change', function (event) {
+			if (event.target.matches && event.target.matches('input, select')) {
+				openNext(event.target);
+			}
+		});
+
+		/* Clicking an already-selected radio is still a deliberate choice and
+		 * should advance, even though browsers do not emit change in that case. */
+		form.addEventListener('click', function (event) {
+			if (event.target.matches && event.target.matches('input[type="radio"]:checked')) {
+				openNext(event.target);
+			}
+		});
+	}
+
 	function initStartForm() {
 		var form = document.getElementById('slug-sync-start-form');
 		var text = config.text || {};
@@ -41,10 +191,14 @@
 		var safety;
 		var typeSelect;
 		var hierarchyNote;
+		var skuOptions;
+		var skuUnavailable;
 
 		if (!form) {
 			return;
 		}
+
+		initWorkflowSteps(form);
 
 		button = document.getElementById('slug-sync-start-button');
 		writeHelp = document.getElementById('slug-sync-write-help');
@@ -52,6 +206,8 @@
 		safety = document.getElementById('slug-sync-safety');
 		typeSelect = document.getElementById('slug-sync-post-type');
 		hierarchyNote = document.getElementById('slug-sync-hierarchy-note');
+		skuOptions = document.getElementById('slug-sync-sku-options');
+		skuUnavailable = document.getElementById('slug-sync-sku-unavailable');
 
 		function applying() {
 			var selected = form.querySelector('input[name="mode"]:checked');
@@ -60,6 +216,7 @@
 
 		function update() {
 			var isApply = applying();
+			var isProduct = typeSelect && typeSelect.value === (config.productType || 'product');
 
 			button.textContent = isApply ? text.apply_button : text.preview_button;
 			writeHelp.textContent = isApply ? text.apply_write : text.preview_write;
@@ -71,6 +228,16 @@
 
 			if (typeSelect && hierarchyNote) {
 				hierarchyNote.hidden = !hierarchical[typeSelect.value];
+			}
+
+			if (skuOptions) {
+				skuOptions.disabled = !isProduct;
+				skuOptions.classList.toggle('is-disabled', !isProduct);
+				skuOptions.setAttribute('aria-disabled', isProduct ? 'false' : 'true');
+			}
+
+			if (skuUnavailable) {
+				skuUnavailable.hidden = !!isProduct;
 			}
 		}
 
@@ -151,6 +318,7 @@
 	}
 
 	initConfirmations();
+	initRunModal();
 	initAutoContinue();
 	initStartForm();
 	initProSlider();

@@ -1,7 +1,14 @@
 # Slug Sync
 
-Rewrites post, page, product and custom post type slugs to match their titles — with a preview
-first, old URLs still redirecting, an exportable redirect map, and a full undo.
+Safely regenerates post, page, product and custom post type slugs from their titles, with optional
+offline transliteration and exact WooCommerce SKU cleanup in either direction, a compatibility
+preflight, measured Preview summary, old URLs still redirecting, an exportable redirect map, and a
+full undo.
+
+Cyrillic and Greek transliteration is resolved by a map bundled with the plugin, so the same title
+produces the same slug on every host; Greek follows ELOT 743, including its vowel pairs. PHP's
+international text support, where the server has it, adds scripts the map does not cover without
+changing that result.
 
 ---
 

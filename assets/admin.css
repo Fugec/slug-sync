@@ -109,6 +109,8 @@
 @media (prefers-reduced-motion: reduce) {
 	.slug-sync-progress-fill { transition: none; }
 	.slug-sync-progress-fill.is-working { animation: none; }
+	.slug-sync-modal-pulse { animation: none; }
+	.slug-sync-modal-read { animation: none; opacity: 1; transform: none; }
 }
 .slug-sync-progress-meta {
 	color: var(--ss-muted);
@@ -132,7 +134,19 @@
 	vertical-align: 2px;
 	width: 26px;
 }
-.slug-sync-select { font-size: 14px; min-width: 280px; }
+/* "Bonus" wears the same badge as a step number so the box reads as part
+   of the same run of steps -- it is simply not one you have to walk
+   through. A word needs a pill rather than the 26px circle. */
+.slug-sync-number--bonus {
+	border-radius: 999px;
+	font-size: 11px;
+	font-weight: 700;
+	letter-spacing: .04em;
+	padding: 0 10px;
+	text-transform: uppercase;
+	width: auto;
+}
+.slug-sync-select { font-size: 14px; margin-top: 8px; min-width: 280px; }
 .slug-sync-choices { display: grid; gap: 10px; margin-top: 14px; }
 .slug-sync-choice {
 	align-items: flex-start;
@@ -145,11 +159,68 @@
 	padding: 14px;
 }
 .slug-sync-choice:hover,
-.slug-sync-choice:focus-within { border-color: var(--ss-navy); box-shadow: 0 0 0 1px var(--ss-navy); }
+.slug-sync-choice:focus-within { border-color: var(--ss-accent); box-shadow: 0 0 0 1px var(--ss-accent); }
 .slug-sync-choice:has(input:checked) { background: var(--ss-accent-soft); border-color: var(--ss-accent); }
 .slug-sync-choice input { margin-top: 3px; }
+/* Round checkboxes. The radios in these lists are already circles, so a
+   square box reads as a different kind of control sitting in the same
+   column. wp-admin's own tick is a glyph sized for that square and its
+   points graze a circular border, so the control is drawn here instead
+   of merely being rounded off. */
+.slug-sync-choice input[type="checkbox"] {
+	-webkit-appearance: none;
+	appearance: none;
+	background: #fff;
+	border: 1px solid var(--ss-line-2);
+	border-radius: 50%;
+	box-shadow: none;
+	box-sizing: border-box;
+	height: 18px;
+	min-width: 18px;
+	position: relative;
+	width: 18px;
+}
+.slug-sync-choice input[type="checkbox"]:checked {
+	background: var(--ss-accent);
+	border-color: var(--ss-accent);
+}
+.slug-sync-choice input[type="checkbox"]:checked::before {
+	border: 2px solid #fff;
+	border-right: 0;
+	border-top: 0;
+	content: "";
+	height: 4px;
+	left: 50%;
+	margin: 0;
+	position: absolute;
+	top: 50%;
+	transform: translate(-50%, -60%) rotate(-45deg);
+	width: 8px;
+}
+.slug-sync-choice input[type="checkbox"]:focus-visible {
+	border-color: var(--ss-accent);
+	box-shadow: 0 0 0 2px var(--ss-accent-soft);
+	outline: 0;
+}
+.slug-sync-choice.is-disabled { background: var(--ss-bg-2); cursor: not-allowed; opacity: .66; }
+.slug-sync-choice.is-disabled:hover,
+.slug-sync-choice.is-disabled:focus-within { border-color: var(--ss-line-2); box-shadow: none; }
 .slug-sync-choice-title { display: block; font-size: 14px; margin-bottom: 4px; }
 .slug-sync-choice-help { color: var(--ss-muted); display: block; line-height: 1.5; }
+.slug-sync-sku-options {
+	border: 1px solid var(--ss-line-2);
+	border-radius: var(--ss-r-sm);
+	margin: 0;
+	min-width: 0;
+	padding: 12px 14px 14px;
+}
+.slug-sync-sku-options legend { color: var(--ss-navy); font-size: 14px; padding: 0 6px; }
+.slug-sync-sku-options > .slug-sync-choice-help { margin: 1px 0 0; }
+.slug-sync-sku-options > .slug-sync-choices { margin-top: 10px; }
+.slug-sync-sku-options.is-disabled { background: var(--ss-bg-2); opacity: .66; }
+.slug-sync-sku-options.is-disabled .slug-sync-choice { cursor: not-allowed; }
+.slug-sync-sku-options.is-disabled .slug-sync-choice:hover,
+.slug-sync-sku-options.is-disabled .slug-sync-choice:focus-within { border-color: var(--ss-line-2); box-shadow: none; }
 .slug-sync-badge {
 	background: #e7f5ea;
 	border-radius: 999px;
@@ -162,6 +233,112 @@
 	vertical-align: 1px;
 }
 .slug-sync-example { background: var(--ss-bg-2); border-radius: var(--ss-r-sm); display: inline-block; margin-top: 5px; padding: 3px 7px; }
+.slug-sync-transform-example {
+	align-items: center;
+	background: var(--ss-bg-2);
+	border: 1px solid var(--ss-line);
+	border-radius: 8px;
+	display: flex;
+	gap: 7px;
+	margin-top: 9px;
+	max-width: max-content;
+	overflow-x: auto;
+	padding: 7px 9px;
+	white-space: nowrap;
+}
+.slug-sync-transform-example > span { color: var(--ss-accent-ink); font-weight: 700; }
+.slug-sync-transform-example code { border: 1px solid var(--ss-line); color: var(--ss-navy); padding: 2px 5px; }
+.slug-sync-product-unavailable { color: #0a0e42; display: block; font-weight: 600; margin-top: 8px; }
+.slug-sync-preview-ready,
+.slug-sync-optional-note {
+	align-items: flex-start;
+	background: #e7f5ea;
+	border: 1px solid rgba(17, 99, 41, .22);
+	border-radius: var(--ss-r-sm);
+	color: #116329;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 5px 10px;
+	margin: 18px 0;
+	padding: 12px 14px;
+}
+.slug-sync-preflight,
+.slug-sync-risk {
+	background: #fff;
+	border: 1px solid var(--ss-line);
+	border-radius: var(--ss-r);
+	box-sizing: border-box;
+	margin: 18px 0;
+	padding: 22px 24px;
+}
+.slug-sync-preflight-head {
+	align-items: flex-start;
+	display: flex;
+	gap: 14px;
+	justify-content: space-between;
+}
+.slug-sync-preflight h2,
+.slug-sync-risk h2 { color: var(--ss-navy); font-size: 1.05rem; margin: 0 0 8px; padding: 0; }
+.slug-sync-preflight > p,
+.slug-sync-risk > p { color: var(--ss-muted); margin: 0 0 14px; }
+.slug-sync-preflight-count {
+	background: var(--ss-bg-2);
+	border: 1px solid var(--ss-line);
+	border-radius: 999px;
+	color: var(--ss-navy);
+	font-size: 12px;
+	font-weight: 700;
+	padding: 5px 10px;
+	white-space: nowrap;
+}
+.slug-sync-preflight-list {
+	display: grid;
+	gap: 9px;
+	list-style: none;
+	margin: 14px 0 0;
+	padding: 0;
+}
+.slug-sync-preflight-list > .slug-sync-card {
+	display: grid;
+	gap: 5px;
+	margin: 0;
+}
+.slug-sync-preflight-list > .slug-sync-preflight-warning { background: #fcf9e8; }
+.slug-sync-preflight-list > .slug-sync-card > strong { color: var(--ss-navy); }
+.slug-sync-preflight-list > .slug-sync-card > span { color: var(--ss-muted); }
+.slug-sync-preflight-list > .slug-sync-card > .button { justify-self: start; margin-top: 4px; }
+.slug-sync-preflight > .slug-sync-preflight-clear {
+	background: #e7f5ea;
+	border: 1px solid rgba(17, 99, 41, .22);
+	border-radius: var(--ss-r-sm);
+	color: #116329;
+	margin: 14px 0 0;
+	padding: 11px 13px;
+}
+.slug-sync-risk-grid {
+	display: grid;
+	gap: 9px;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	margin-top: 14px;
+}
+.slug-sync-risk-grid > div {
+	background: var(--ss-bg-2);
+	border: 1px solid var(--ss-line);
+	border-radius: var(--ss-r-sm);
+	display: grid;
+	gap: 3px;
+	padding: 13px 14px;
+}
+.slug-sync-risk-grid strong { color: var(--ss-navy); font-size: 22px; line-height: 1; }
+.slug-sync-risk-grid span { color: var(--ss-muted); font-size: 12px; line-height: 1.35; }
+.slug-sync-risk > .slug-sync-risk-note,
+.slug-sync-risk > .slug-sync-risk-warning {
+	border-radius: var(--ss-r-sm);
+	margin: 12px 0 0;
+	padding: 10px 12px;
+}
+.slug-sync-risk > .slug-sync-risk-note { background: var(--ss-bg-2); color: var(--ss-muted); }
+.slug-sync-risk > .slug-sync-risk-warning { background: #fcf9e8; border: 1px solid rgba(184, 134, 0, .24); color: #6f5300; }
 .slug-sync-apply-note { background: #fcf0f1; border: 1px solid var(--ss-line); border-radius: var(--ss-r-sm); padding: 12px 14px; }
 .slug-sync-hierarchy-note { background: #fcf9e8; border: 1px solid var(--ss-line); border-radius: var(--ss-r-sm); padding: 12px 14px; }
 .slug-sync-hierarchy-note p { margin: 6px 0 0; }
@@ -272,38 +449,43 @@
 .slug-sync-table-wrap + .description { margin-top: 16px; }
 .slug-sync-history .slug-sync-report-button { margin: 0; min-width: 150px; white-space: nowrap; }
 .slug-sync-report-button::before { content: "\2193"; font-size: 15px; line-height: 1; margin-right: 7px; }
-.slug-sync-latest-run .slug-sync-report-button--changes {
+/* The redirect map carries the emphasis on the latest run, matching the
+   run overlay: it is the file that has to leave with them. */
+.slug-sync-latest-run .slug-sync-report-button--redirects {
 	background: var(--ss-accent);
 	border-color: var(--ss-accent);
 	box-shadow: 0 8px 22px -10px rgba(244, 61, 3, .75);
 	color: #fff;
 }
-.slug-sync-latest-run .slug-sync-report-button--changes:hover {
+.slug-sync-latest-run .slug-sync-report-button--redirects:hover {
 	background: var(--ss-accent);
 	border-color: var(--ss-accent);
 	color: #fff;
 	filter: brightness(.92);
 }
-.slug-sync-latest-run .slug-sync-report-button--redirects { border-color: var(--ss-accent); color: var(--ss-accent-ink); }
-.slug-sync-advanced { margin: 0 0 18px; }
-.slug-sync-advanced > summary {
-	align-items: center;
+.slug-sync-latest-run .slug-sync-report-button--changes { border-color: var(--ss-accent); color: var(--ss-accent-ink); }
+.slug-sync-workflow-step {
 	background: #fff;
 	border: 1px solid var(--ss-line);
 	border-radius: var(--ss-r);
+	box-sizing: border-box;
+	margin: 18px 0;
+	overflow: hidden;
+	transition: border-color .25s, box-shadow .25s var(--ss-ease);
+}
+.slug-sync-workflow-step > summary {
+	align-items: center;
 	color: var(--ss-navy);
 	cursor: pointer;
 	display: flex;
 	flex-wrap: wrap;
-	font-size: 15px;
-	font-weight: 700;
 	gap: 12px;
 	list-style: none;
 	padding: 20px 24px;
-	transition: border-color .25s, box-shadow .25s var(--ss-ease);
+	transition: background .2s var(--ss-ease);
 }
-.slug-sync-advanced > summary::-webkit-details-marker { display: none; }
-.slug-sync-advanced > summary::before {
+.slug-sync-workflow-step > summary::-webkit-details-marker { display: none; }
+.slug-sync-workflow-step > summary::after {
 	align-items: center;
 	background: var(--ss-accent-soft);
 	border-radius: 50%;
@@ -316,18 +498,30 @@
 	height: 26px;
 	justify-content: center;
 	line-height: 1;
+	margin-left: auto;
 	width: 26px;
 }
-.slug-sync-advanced[open] > summary::before { content: "\2212"; }
-.slug-sync-advanced > summary:hover { border-color: var(--ss-line-2); box-shadow: 0 14px 32px -20px rgba(11, 15, 67, .3); }
-.slug-sync-advanced-hint {
+.slug-sync-workflow-step[open] > summary::after { content: "\2212"; }
+.slug-sync-workflow-step > summary:hover { background: var(--ss-bg-2); }
+.slug-sync-workflow-step > summary:focus-visible { box-shadow: inset 0 0 0 2px var(--ss-navy); outline: 0; }
+.slug-sync-workflow-step:hover { border-color: var(--ss-line-2); box-shadow: 0 14px 32px -20px rgba(11, 15, 67, .3); }
+.slug-sync-workflow-title { font-size: 15px; font-weight: 700; }
+.slug-sync-workflow-hint {
 	color: var(--ss-muted);
 	font-size: 13px;
 	font-weight: 400;
 	margin-left: auto;
 }
-.slug-sync-advanced[open] > summary { margin-bottom: 0; }
-.slug-sync-advanced > .slug-sync-card { margin-top: 10px; }
+.slug-sync-workflow-step > .slug-sync-workflow-body,
+.slug-sync-workflow-step > .slug-sync-workflow-body:hover {
+	border: 0;
+	border-radius: 0;
+	border-top: 1px solid var(--ss-line);
+	box-shadow: none;
+	margin: 0;
+	padding: 22px 24px 24px;
+}
+.slug-sync-workflow-step.is-auto-opened { border-color: var(--ss-accent); box-shadow: 0 0 0 2px var(--ss-accent-soft); }
 
 /* ---- Vertical rhythm ----------------------------------------
    Every block on the screen was setting its own margins, so the gap
@@ -349,6 +543,7 @@
 .slug-sync-sub > p { margin: 0 0 16px; }
 
 .slug-sync-card > .slug-sync-safety,
+.slug-sync-card > .slug-sync-optional-note,
 .slug-sync-card > .slug-sync-apply-note,
 .slug-sync-card > .slug-sync-hierarchy-note,
 .slug-sync-card > .slug-sync-taxonomy-note,
@@ -399,6 +594,7 @@
    card reads as a second layer of boxes rather than a section. */
 .slug-sync-sub { padding: 4px 0 18px; }
 .slug-sync-sub + .slug-sync-sub { border-top: 1px solid var(--ss-line); padding-top: 18px; }
+.slug-sync-workflow-body > .slug-sync-sub:last-child { padding-bottom: 0; }
 .slug-sync-sub > h2 {
 	color: var(--ss-navy);
 	font-size: 15px;
@@ -526,8 +722,23 @@
 	width: fit-content;
 }
 .slug-sync-pro-status strong { color: #fff; }
+.slug-sync-pro-footer {
+	align-items: center;
+	border-top: 1px solid var(--ss-line);
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px 16px;
+	margin-top: 20px;
+	padding-top: 18px;
+}
+.slug-sync-pro-footer .description { color: var(--ss-muted); flex: 1 1 260px; font-size: 13px; margin: 0; }
 .slug-sync-pro-cta { font-size: 14px; min-height: 46px; padding: 11px 22px; }
 .slug-sync-pro-cta::after { content: "\2192"; font-size: 17px; line-height: 1; margin-left: 8px; }
+/* Past 1440px four whole cards leave the row looking closed, as though
+   there were nothing after them. A fifth card's edge says otherwise. */
+@media (min-width: 1441px) {
+	.slug-sync-pro-grid { grid-auto-columns: calc((100% - 48px) / 4.2); }
+}
 @media (max-width: 1200px) {
 	.slug-sync-pro-grid { grid-auto-columns: calc((100% - 24px) / 3); }
 }
@@ -611,19 +822,171 @@
 	overflow: auto;
 	padding: 12px;
 }
-.slug-sync-pro-running {
-	align-items: flex-start;
+/* ---- The run overlay ----------------------------------------
+   The run used to be a card partway down a long screen, which put
+   its two report downloads below the fold. Nobody scrolled that
+   far, so the redirect map may as well not have existed. The run
+   now covers the screen, and the reports are what it ends on.
+
+   Batches advance by reloading the page, so this is repainted with
+   every batch rather than opened once: nothing here needs script.
+   It deliberately stops short of the admin bar, which stays the
+   way out of a run that is going wrong. */
+.slug-sync-modal {
+	display: flex;
+	inset: 0;
+	justify-content: center;
+	overflow-y: auto;
+	overscroll-behavior: contain;
+	padding: 52px 20px 40px;
+	position: fixed;
+	z-index: 99998;
+}
+.slug-sync-modal[hidden] { display: none; }
+.slug-sync-modal-backdrop {
+	-webkit-backdrop-filter: blur(3px);
+	backdrop-filter: blur(3px);
+	background: rgba(11, 15, 67, .55);
+	inset: 0;
+	position: fixed;
+}
+.slug-sync-modal-card {
+	box-shadow: 0 40px 80px -28px rgba(11, 15, 67, .6);
+	margin: auto;
+	max-width: 720px;
+	position: relative;
+	width: 100%;
+}
+.slug-sync-modal-card:hover { border-color: var(--ss-line); }
+.slug-sync-modal-card > h2 { font-size: 22px; padding-right: 44px; }
+.slug-sync-modal-lead { color: var(--ss-muted); margin: 0 0 18px; max-width: 62ch; }
+.slug-sync-modal-badge {
+	align-items: center;
 	background: var(--ss-accent-soft);
+	border-radius: 999px;
+	color: var(--ss-accent-ink);
+	display: inline-flex;
+	font-size: 11px;
+	font-weight: 700;
+	gap: 7px;
+	letter-spacing: .04em;
+	margin-bottom: 12px;
+	padding: 5px 12px;
+	text-transform: uppercase;
+}
+.slug-sync-modal-pulse {
+	animation: slug-sync-pulse 1.4s ease-in-out infinite;
+	background: var(--ss-accent);
+	border-radius: 50%;
+	flex: none;
+	height: 7px;
+	width: 7px;
+}
+@keyframes slug-sync-pulse {
+	0%, 100% { opacity: 1; transform: scale(1); }
+	50% { opacity: .35; transform: scale(.65); }
+}
+.slug-sync-modal-close {
+	align-items: center;
+	border-radius: 50%;
+	color: var(--ss-muted);
+	display: flex;
+	font-size: 24px;
+	height: 32px;
+	justify-content: center;
+	line-height: 1;
+	position: absolute;
+	right: 16px;
+	text-decoration: none;
+	top: 16px;
+	width: 32px;
+}
+.slug-sync-modal-close:hover,
+.slug-sync-modal-close:focus { background: var(--ss-bg-2); color: var(--ss-navy); }
+.slug-sync-modal-meta {
+	color: var(--ss-muted);
+	display: flex;
+	flex-wrap: wrap;
+	font-size: 13px;
+	gap: 4px 18px;
+	margin: 14px 0 0;
+}
+.slug-sync-modal-meta strong { color: var(--ss-navy); }
+
+/* The point of the whole overlay: two named files, each said out
+   loud, rather than two identical grey buttons in a table below. */
+.slug-sync-modal-downloads,
+.slug-sync-modal-reading,
+.slug-sync-modal-actions {
+	border-top: 1px solid var(--ss-line);
+	margin-top: 20px;
+	padding-top: 18px;
+}
+.slug-sync-modal-downloads h3 { color: var(--ss-navy); font-size: 15px; margin: 0 0 12px; }
+.slug-sync-modal-files {
+	display: grid;
+	gap: 12px;
+	grid-template-columns: repeat(auto-fit, minmax(238px, 1fr));
+}
+.slug-sync-modal-file {
+	background: var(--ss-bg-2);
 	border: 1px solid var(--ss-line);
 	border-radius: var(--ss-r-sm);
-	display: grid;
-	gap: 5px;
-	margin-top: 16px;
-	padding: 14px 16px;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	padding: 16px;
 }
-.slug-sync-pro-running .slug-sync-eyebrow { margin-bottom: 2px; }
-.slug-sync-pro-running strong { color: var(--ss-navy); font-size: 14px; }
-.slug-sync-pro-running p { color: var(--ss-muted); margin: 0; }
+.slug-sync-modal-file strong { color: var(--ss-navy); font-size: 14px; }
+.slug-sync-modal-file span { color: var(--ss-muted); font-size: 13px; line-height: 1.55; }
+.slug-sync-modal-file .button { align-self: flex-start; margin-top: 4px; }
+.slug-sync-modal-warning {
+	background: #fcf9e8;
+	border: 1px solid var(--ss-line);
+	border-radius: var(--ss-r-sm);
+	margin: 12px 0 0;
+	padding: 12px 14px;
+}
+.slug-sync-modal-note { color: var(--ss-muted); font-size: 13px; margin: 12px 0 0; }
+/* One line, changing only when the batch does. A batch page lives at
+   least as long as the auto-continue delay, so the line is on screen for
+   that whole time rather than being swapped out mid-sentence. All this
+   needs is an entrance. */
+.slug-sync-modal-reading p { margin: 10px 0 0; }
+.slug-sync-modal-read {
+	align-items: center;
+	animation: slug-sync-read .55s var(--ss-ease) both;
+	color: var(--ss-navy);
+	display: flex;
+	gap: 9px;
+	min-height: 26px;
+}
+.slug-sync-modal-read strong { font-size: 14px; line-height: 1.35; }
+.slug-sync-modal-read--pro strong { color: var(--ss-accent-ink); }
+.slug-sync-modal-read-icon {
+	align-items: center;
+	background: var(--ss-accent-soft);
+	border-radius: 50%;
+	color: var(--ss-accent-ink);
+	display: inline-flex;
+	flex: none;
+	height: 26px;
+	justify-content: center;
+	width: 26px;
+}
+.slug-sync-modal-read-icon svg { height: 16px; width: 16px; }
+@keyframes slug-sync-read {
+	from { opacity: 0; transform: translateY(6px); }
+	to { opacity: 1; transform: none; }
+}
+.slug-sync-modal-actions {
+	align-items: center;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12px;
+}
+.slug-sync-modal-actions .description { color: var(--ss-muted); font-size: 13px; margin: 0; }
+body.slug-sync-modal-open { overflow: hidden; }
 .slug-sync-technical { margin-top: 6px; }
 .slug-sync-technical summary { color: var(--ss-dim); cursor: pointer; font-size: 12px; }
 @media (max-width: 782px) {
@@ -631,6 +994,10 @@
 	.slug-sync-steps { grid-template-columns: 1fr; }
 	.slug-sync-select { max-width: 100%; min-width: 0; width: 100%; }
 	.slug-sync-card { padding: 16px; }
+	.slug-sync-workflow-step > summary { gap: 8px; padding: 16px; }
+	.slug-sync-workflow-step > .slug-sync-workflow-body,
+	.slug-sync-workflow-step > .slug-sync-workflow-body:hover { padding: 16px; }
+	.slug-sync-workflow-hint { flex-basis: 100%; margin-left: 34px; }
 	.slug-sync-history-panel { padding: 16px; }
 	.slug-sync-admin .button { width: 100%; }
 	.slug-sync-controls form,
@@ -643,7 +1010,14 @@
 	}
 	.slug-sync-finding { grid-template-columns: 1fr; }
 	.slug-sync-finding-new { justify-self: start; }
+	.slug-sync-risk-grid { grid-template-columns: 1fr 1fr; }
+	.slug-sync-modal { padding: 46px 0 0; }
+	.slug-sync-modal-card { border-radius: var(--ss-r) var(--ss-r) 0 0; min-height: 100%; }
+	.slug-sync-modal-files { grid-template-columns: 1fr; }
+	.slug-sync-modal-file .button { width: 100%; }
 }
 @media (max-width: 600px) {
 	.slug-sync-pro-grid { grid-auto-columns: 100%; }
+	.slug-sync-preflight-head { align-items: flex-start; flex-direction: column; }
+	.slug-sync-risk-grid { grid-template-columns: 1fr; }
 }
