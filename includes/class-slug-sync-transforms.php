@@ -75,6 +75,14 @@ class Slug_Sync_Transforms {
 				$latin = $intl->transliterate( $out );
 
 				if ( is_string( $latin ) && '' !== $latin ) {
+					// ICU represents Arabic ayn/hamza and similar apostrophe-like
+					// sounds with Unicode modifier letters. WordPress percent-encodes
+					// those marks, leaving an otherwise Latin slug such as
+					// "makynt-qhwt-%ca%bfrbyt". They do not add a useful URL word,
+					// so remove them just as sanitize_title() removes an ASCII
+					// apostrophe.
+					$latin = str_replace( array( 'ʻ', 'ʼ', 'ʾ', 'ʿ' ), '', $latin );
+
 					return $latin;
 				}
 			}

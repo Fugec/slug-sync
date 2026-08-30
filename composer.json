@@ -1,6 +1,6 @@
 {
-	"name": "arminkapetanovic/slug-sync",
-	"description": "Development tooling for the Slug Sync plugin. Not shipped.",
+	"name": "arminkapetanovic/slugsync",
+	"description": "Development tooling for the SlugSync plugin. Not shipped.",
 	"license": "GPL-2.0-or-later",
 	"type": "wordpress-plugin",
 	"require-dev": {

@@ -160,7 +160,7 @@ final class RunModalTest extends TestCase {
 		$this->assertStringContainsString( 'class="slug-sync-modal-warning"', $html );
 		$this->assertStringContainsString( 'nests inside a parent', $html );
 		$this->assertStringContainsString( 'Your new URLs are live', $html );
-		$this->assertStringContainsString( 'Back to Slug Sync', $html );
+		$this->assertStringContainsString( 'Back to SlugSync', $html );
 	}
 
 	public function test_a_paused_run_can_download_what_it_has_and_still_resume() {

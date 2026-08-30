@@ -47,7 +47,7 @@ jobs:
       - name: Check the tag matches the plugin version
         run: |
           tag="${GITHUB_REF_NAME#v}"
-          version="$(sed -n 's/^ \* Version: *//p' slug-sync.php | head -1 | tr -d '[:space:]')"
+          version="$(sed -n 's/^ \* Version: *//p' slugsync.php | head -1 | tr -d '[:space:]')"
 
           if [ "$tag" != "$version" ]; then
             echo "Tag $GITHUB_REF_NAME declares $tag but the plugin header says $version." >&2
@@ -63,17 +63,17 @@ jobs:
         run: bash bin/build.sh
 
       # A second copy under a fixed name gives a permanent download URL:
-      # /releases/latest/download/slug-sync.zip. Both zips are byte-identical
-      # and both unpack to a folder named slug-sync.
+      # /releases/latest/download/slugsync.zip. Both zips are byte-identical
+      # and both unpack to a folder named slugsync.
       - name: Add a stable-named copy
-        run: cp "build/slug-sync-${version}.zip" build/slug-sync.zip
+        run: cp "build/slugsync-${version}.zip" build/slugsync.zip
 
       - name: Publish the release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "$GITHUB_REF_NAME" \
-            "build/slug-sync-${version}.zip" \
-            "build/slug-sync.zip" \
-            --title "Slug Sync ${version}" \
+            "build/slugsync-${version}.zip" \
+            "build/slugsync.zip" \
+            --title "SlugSync ${version}" \
             --generate-notes

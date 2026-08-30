@@ -90,6 +90,7 @@ final class TransformsTest extends TestCase {
 	public function test_intl_still_handles_scripts_outside_the_bundled_map() {
 		$this->assertSame( 'ka fei ji', Slug_Sync_Transforms::transliterate( '咖啡机' ) );
 		$this->assertSame( 'Kofe ka fei ji', Slug_Sync_Transforms::transliterate( 'Кофе 咖啡机' ) );
+		$this->assertSame( 'makynt qhwt rbyt', Slug_Sync_Transforms::transliterate( 'ماكينة قهوة عربية' ) );
 	}
 
 	/**

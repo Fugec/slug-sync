@@ -1,6 +1,6 @@
 <?php
 /**
- * Removes everything Slug Sync stored.
+ * Removes everything SlugSync stored.
  *
  * @package Slug_Sync
  */

@@ -1,17 +1,18 @@
 #!/usr/bin/env bash
 #
 # Builds the distributable plugin zip in build/, honouring .distignore.
-# The zip contains a single slug-sync/ directory, which is what
+# The zip contains a single slugsync/ directory, which is what
 # wordpress.org expects and what Plugins > Add New > Upload accepts.
 
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-slug="slug-sync"
-version="$(sed -n 's/^ \* Version: *//p' "$root/$slug.php" | head -1 | tr -d '[:space:]')"
+slug="slugsync"
+plugin_file="slugsync.php"
+version="$(sed -n 's/^ \* Version: *//p' "$root/$plugin_file" | head -1 | tr -d '[:space:]')"
 
 if [ -z "$version" ]; then
-	echo "Could not read Version from $slug.php" >&2
+	echo "Could not read Version from $plugin_file" >&2
 	exit 1
 fi
 
@@ -19,12 +20,12 @@ fi
 # plugin header, wordpress.org reads Stable tag, and the plugin reads its own
 # constant; if they diverge the directory serves one version and installs
 # another, which is not something users can fix themselves.
-constant="$(sed -n "s/^define( 'SLUG_SYNC_VERSION', '\([^']*\)' );.*/\1/p" "$root/$slug.php" | head -1)"
+constant="$(sed -n "s/^define( 'SLUG_SYNC_VERSION', '\([^']*\)' );.*/\1/p" "$root/$plugin_file" | head -1)"
 stable="$(sed -n 's/^Stable tag: *//p' "$root/readme.txt" | head -1 | tr -d '[:space:]')"
 
 if [ "$constant" != "$version" ] || [ "$stable" != "$version" ]; then
 	echo "Version mismatch -- refusing to build:" >&2
-	echo "  $slug.php header:      $version" >&2
+	echo "  $plugin_file header:   $version" >&2
 	echo "  SLUG_SYNC_VERSION:     $constant" >&2
 	echo "  readme.txt Stable tag: $stable" >&2
 	exit 1

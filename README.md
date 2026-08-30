@@ -1,4 +1,4 @@
-# Slug Sync
+# SlugSync
 
 Safely regenerates post, page, product and custom post type slugs from their titles, with optional
 offline transliteration and exact WooCommerce SKU cleanup in either direction, a compatibility
@@ -14,12 +14,12 @@ changing that result.
 
 ## Download
 
-**[⬇ Download Slug Sync](https://github.com/Fugec/slug-sync/releases/download/dev/slug-sync.zip)**
+**[⬇ Download SlugSync](https://github.com/Fugec/slug-sync/releases/download/dev/slugsync.zip)**
 
 Then in WordPress: **Plugins → Add New → Upload Plugin → Choose File → Install Now**.
 
 That link is rebuilt from `main` on every push, so it always carries the latest changes. Fixed,
-version-stamped builds (`slug-sync-1.0.0.zip`) are listed under
+version-stamped builds (`slugsync-1.0.0.zip`) are listed under
 [Releases](https://github.com/Fugec/slug-sync/releases) if you need to pin one.
 
 ### ⚠️ Do not use the green “Code → Download ZIP” button
@@ -41,11 +41,11 @@ snapshot for developers, not an installable plugin. Use the download link above 
 ```bash
 composer install     # PHPUnit 9.6, the only dev dependency
 vendor/bin/phpunit   # unit and regression tests
-bash bin/build.sh    # → build/slug-sync-<version>.zip
+bash bin/build.sh    # → build/slugsync-<version>.zip
 ```
 
 `bin/build.sh` is what produces a real plugin zip: it filters the tree through `.distignore` and
-stages it into a folder named `slug-sync`, which is the plugin slug. It refuses to build if the
+stages it into a folder named `slugsync`, which is the plugin slug. It refuses to build if the
 version in the plugin header, `SLUG_SYNC_VERSION` and the readme's `Stable tag` disagree.
 
 Both publishing workflows first run the test suite and PHP syntax checks on PHP 7.4 and 8.4.

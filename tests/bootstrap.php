@@ -30,7 +30,7 @@ $GLOBALS['wp_rewrite']                = (object) array(
 function add_action() {}
 
 function plugins_url( $path ) {
-	return 'https://example.test/wp-content/plugins/slug-sync/' . ltrim( $path, '/' );
+	return 'https://example.test/wp-content/plugins/slugsync/' . ltrim( $path, '/' );
 }
 
 function wp_enqueue_style( $handle, $src, $dependencies, $version ) {
@@ -294,4 +294,4 @@ final class Slug_Sync_Test_WPDB {
 
 $GLOBALS['wpdb'] = new Slug_Sync_Test_WPDB();
 
-require_once __DIR__ . '/../slug-sync.php';
+require_once __DIR__ . '/../slugsync.php';

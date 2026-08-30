@@ -63,7 +63,7 @@ final class CompatibilityPreflightTest extends TestCase {
 
 		$this->assertStringContainsString( 'Compatibility preflight', $html );
 		$this->assertStringContainsString( 'Redirection is ready for the redirect report', $html );
-		$this->assertStringContainsString( 'Slug Sync does not write Redirection&#039;s tables or settings.', $html );
+		$this->assertStringContainsString( 'SlugSync does not write Redirection&#039;s tables or settings.', $html );
 		$this->assertStringContainsString( 'tools.php?page=redirection.php&amp;sub=import', $html );
 		$this->assertStringContainsString( '<li class="slug-sync-card">', $html );
 		$this->assertStringNotContainsString( 'slug-sync-preflight-item is-info', $html );

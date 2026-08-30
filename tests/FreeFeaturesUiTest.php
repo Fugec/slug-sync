@@ -134,7 +134,7 @@ final class FreeFeaturesUiTest extends TestCase {
 
 		$this->assertStringContainsString( 'class="slug-sync-intro"', $html );
 		$this->assertStringContainsString( 'class="slug-sync-steps"', $html );
-		$this->assertStringNotContainsString( 'What Slug Sync Pro adds', $html );
+		$this->assertStringNotContainsString( 'What SlugSync Pro adds', $html );
 	}
 
 	public function test_a_run_that_has_not_finished_leaves_the_introduction_alone() {
@@ -145,7 +145,7 @@ final class FreeFeaturesUiTest extends TestCase {
 		$html = $this->render_form();
 
 		$this->assertStringContainsString( 'class="slug-sync-intro"', $html );
-		$this->assertStringNotContainsString( 'What Slug Sync Pro adds', $html );
+		$this->assertStringNotContainsString( 'What SlugSync Pro adds', $html );
 	}
 
 	public function test_a_stopped_run_leaves_the_introduction_alone_too() {
@@ -156,7 +156,7 @@ final class FreeFeaturesUiTest extends TestCase {
 		$html = $this->render_form();
 
 		$this->assertStringContainsString( 'class="slug-sync-intro"', $html );
-		$this->assertStringNotContainsString( 'What Slug Sync Pro adds', $html );
+		$this->assertStringNotContainsString( 'What SlugSync Pro adds', $html );
 	}
 
 	public function test_an_undone_run_still_counts_as_having_been_through_the_loop() {
@@ -167,7 +167,7 @@ final class FreeFeaturesUiTest extends TestCase {
 		$html = $this->render_form();
 
 		$this->assertStringNotContainsString( 'class="slug-sync-intro"', $html );
-		$this->assertStringContainsString( 'What Slug Sync Pro adds', $html );
+		$this->assertStringContainsString( 'What SlugSync Pro adds', $html );
 	}
 
 	public function test_a_finished_run_swaps_the_introduction_for_the_pro_card() {
@@ -178,11 +178,11 @@ final class FreeFeaturesUiTest extends TestCase {
 		$html = $this->render_form();
 
 		$this->assertStringNotContainsString( 'class="slug-sync-intro"', $html );
-		$this->assertStringContainsString( 'What Slug Sync Pro adds', $html );
-		$this->assertStringContainsString( 'Slug Sync Free is complete on its own', $html );
+		$this->assertStringContainsString( 'What SlugSync Pro adds', $html );
+		$this->assertStringContainsString( 'SlugSync Free is complete on its own', $html );
 
 		// One Pro card on the screen, never two.
-		$this->assertSame( 1, substr_count( $html, 'What Slug Sync Pro adds' ) );
+		$this->assertSame( 1, substr_count( $html, 'What SlugSync Pro adds' ) );
 	}
 
 	public function test_the_returning_preview_gets_the_contextual_pro_card_only_once() {
@@ -201,10 +201,10 @@ final class FreeFeaturesUiTest extends TestCase {
 
 		$html = $this->render_form();
 
-		$this->assertSame( 1, substr_count( $html, 'What Slug Sync Pro adds' ) );
+		$this->assertSame( 1, substr_count( $html, 'What SlugSync Pro adds' ) );
 		$this->assertStringContainsString( 'What this preview noticed', $html );
 		$this->assertStringContainsString( 'Free completed this URL preview.', $html );
-		$this->assertStringNotContainsString( 'Slug Sync Free is complete on its own', $html );
+		$this->assertStringNotContainsString( 'SlugSync Free is complete on its own', $html );
 		$this->assertStringContainsString( 'Your preview choices are restored below.', $html );
 	}
 

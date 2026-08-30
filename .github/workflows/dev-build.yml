@@ -3,7 +3,7 @@ name: Dev build
 # Keeps one permanent download that always contains the current code, for
 # people installing from GitHub while the plugin is not on wordpress.org yet.
 # Every push to main rebuilds the plugin zip and republishes it behind the
-# "dev" tag, so /releases/download/dev/slug-sync.zip never goes stale.
+# "dev" tag, so /releases/download/dev/slugsync.zip never goes stale.
 #
 # This does not replace release.yml: pushing a v* tag still cuts a real,
 # version-stamped release, and that is what a directory submission is built
@@ -63,9 +63,9 @@ jobs:
 
       # The download URL has to stay the same forever, so the asset cannot
       # carry the version in its name. Both zips unpack to a folder named
-      # slug-sync either way.
+      # slugsync either way.
       - name: Add a stable-named copy
-        run: cp build/slug-sync-*.zip build/slug-sync.zip
+        run: cp build/slugsync-*.zip build/slugsync.zip
 
       # Recreating the release is what moves the dev tag onto this commit.
       # gh release delete --cleanup-tag removes both, so the tag cannot drift
@@ -76,7 +76,7 @@ jobs:
         run: |
           gh release delete dev --yes --cleanup-tag || true
 
-          gh release create dev build/slug-sync.zip \
+          gh release create dev build/slugsync.zip \
             --title "Latest build (main)" \
             --prerelease \
             --target "$GITHUB_SHA" \

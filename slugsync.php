@@ -1,15 +1,15 @@
 <?php
 /**
- * Plugin Name:       Slug Sync
+ * Plugin Name:       SlugSync
  * Plugin URI:        https://slugsync.com/
  * Description:       Previews and safely regenerates content slugs from titles, with optional transliteration and WooCommerce SKU cleanup, redirects, reports and undo.
  * Version:           1.0.0
  * Requires at least: 5.6
  * Requires PHP:      7.4
- * Author:            Slug Sync
+ * Author:            SlugSync
  * License:           GPL-2.0-or-later
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
- * Text Domain:       slug-sync
+ * Text Domain:       slugsync
  * Domain Path:       /languages
  *
  * @package Slug_Sync
@@ -133,7 +133,7 @@ class Slug_Sync {
 		}
 
 		if ( ! current_user_can( self::CAP ) ) {
-			wp_die( esc_html__( 'You do not have permission to access this page.', 'slug-sync' ) );
+			wp_die( esc_html__( 'You do not have permission to access this page.', 'slugsync' ) );
 		}
 
 		if ( wp_safe_redirect( self::page_url() ) ) {
@@ -165,16 +165,16 @@ class Slug_Sync {
 		 */
 		add_submenu_page(
 			'admin.php',
-			__( 'Slug Sync', 'slug-sync' ),
-			__( 'Slug Sync', 'slug-sync' ),
+			__( 'SlugSync', 'slugsync' ),
+			__( 'SlugSync', 'slugsync' ),
 			self::CAP,
 			self::PAGE,
 			array( __CLASS__, 'render' )
 		);
 
 		add_management_page(
-			__( 'Slug Sync', 'slug-sync' ),
-			__( 'Slug Sync', 'slug-sync' ),
+			__( 'SlugSync', 'slugsync' ),
+			__( 'SlugSync', 'slugsync' ),
 			self::CAP,
 			self::PAGE,
 			array( __CLASS__, 'render' )
@@ -883,7 +883,7 @@ class Slug_Sync {
 	 */
 	public static function download_report() {
 		if ( ! current_user_can( self::CAP ) ) {
-			wp_die( esc_html__( 'You do not have permission to download this report.', 'slug-sync' ) );
+			wp_die( esc_html__( 'You do not have permission to download this report.', 'slugsync' ) );
 		}
 
 		// Nonce is checked below after the report and run keys are validated.
@@ -892,7 +892,7 @@ class Slug_Sync {
 		$files  = array( 'changes', 'redirects' );
 
 		if ( ! in_array( $report, $files, true ) || ( $run_id && ! self::get_run( $run_id ) ) ) {
-			wp_die( esc_html__( 'Invalid report.', 'slug-sync' ) );
+			wp_die( esc_html__( 'Invalid report.', 'slugsync' ) );
 		}
 
 		check_admin_referer( 'slug_sync_download_' . $report . '_' . ( $run_id ? $run_id : 'legacy' ) );
@@ -901,7 +901,7 @@ class Slug_Sync {
 		$path     = self::report_path( $run_id, $report );
 
 		if ( ! is_file( $path ) || ! is_readable( $path ) ) {
-			wp_die( esc_html__( 'The report file is not available.', 'slug-sync' ) );
+			wp_die( esc_html__( 'The report file is not available.', 'slugsync' ) );
 		}
 
 		while ( ob_get_level() ) {
@@ -1236,14 +1236,14 @@ class Slug_Sync {
 
 				if ( $without_sku !== $source ) {
 					$source  = $without_sku;
-					$notes[] = __( 'assigned SKU removed', 'slug-sync' );
+					$notes[] = __( 'assigned SKU removed', 'slugsync' );
 				}
 			} elseif ( $include_sku ) {
 				$with_sku = Slug_Sync_Transforms::add_exact_sku( $source, $sku );
 
 				if ( $with_sku !== $source ) {
 					$source  = $with_sku;
-					$notes[] = __( 'assigned SKU added', 'slug-sync' );
+					$notes[] = __( 'assigned SKU added', 'slugsync' );
 				}
 			}
 		}
@@ -1253,7 +1253,7 @@ class Slug_Sync {
 
 			if ( $latin !== $source ) {
 				$source  = $latin;
-				$notes[] = __( 'transliterated to Latin', 'slug-sync' );
+				$notes[] = __( 'transliterated to Latin', 'slugsync' );
 			}
 		}
 
@@ -1271,15 +1271,15 @@ class Slug_Sync {
 	 */
 	private static function conflict_note( $reason ) {
 		$notes = array(
-			'existing_slug'        => __( 'target already used by existing content, suffixed', 'slug-sync' ),
-			'preview_claim'        => __( 'target also proposed for another item in this Preview, suffixed', 'slug-sync' ),
-			'reserved_word'        => __( 'target reserved by WordPress, suffixed', 'slug-sync' ),
-			'date_archive'         => __( 'target conflicts with a date archive, suffixed', 'slug-sync' ),
-			'custom_filter'        => __( 'target adjusted by a WordPress or plugin slug rule', 'slug-sync' ),
-			'wordpress_adjustment' => __( 'target adjusted by WordPress for uniqueness', 'slug-sync' ),
+			'existing_slug'        => __( 'target already used by existing content, suffixed', 'slugsync' ),
+			'preview_claim'        => __( 'target also proposed for another item in this Preview, suffixed', 'slugsync' ),
+			'reserved_word'        => __( 'target reserved by WordPress, suffixed', 'slugsync' ),
+			'date_archive'         => __( 'target conflicts with a date archive, suffixed', 'slugsync' ),
+			'custom_filter'        => __( 'target adjusted by a WordPress or plugin slug rule', 'slugsync' ),
+			'wordpress_adjustment' => __( 'target adjusted by WordPress for uniqueness', 'slugsync' ),
 		);
 
-		return isset( $notes[ $reason ] ) ? $notes[ $reason ] : __( 'target adjusted to keep the URL unique', 'slug-sync' );
+		return isset( $notes[ $reason ] ) ? $notes[ $reason ] : __( 'target adjusted to keep the URL unique', 'slugsync' );
 	}
 
 	/**
@@ -1721,7 +1721,7 @@ class Slug_Sync {
 		);
 
 		if ( false === $written ) {
-			return $wpdb->last_error ? $wpdb->last_error : __( 'Database write failed.', 'slug-sync' );
+			return $wpdb->last_error ? $wpdb->last_error : __( 'Database write failed.', 'slugsync' );
 		}
 
 		clean_post_cache( $post_id );
@@ -1804,11 +1804,11 @@ class Slug_Sync {
 			'SlugSyncAdmin',
 			array(
 				'text'         => array(
-					'preview_button' => __( 'Create preview', 'slug-sync' ),
-					'apply_button'   => __( 'Apply slug changes', 'slug-sync' ),
-					'preview_write'  => __( 'This choice has no effect during a preview because nothing is saved.', 'slug-sync' ),
-					'apply_write'    => __( 'This choice controls how each slug is saved during Apply.', 'slug-sync' ),
-					'confirm_apply'  => __( 'Apply will begin changing slugs immediately. Have you reviewed a preview and taken a database backup?', 'slug-sync' ),
+					'preview_button' => __( 'Create preview', 'slugsync' ),
+					'apply_button'   => __( 'Apply slug changes', 'slugsync' ),
+					'preview_write'  => __( 'This choice has no effect during a preview because nothing is saved.', 'slugsync' ),
+					'apply_write'    => __( 'This choice controls how each slug is saved during Apply.', 'slugsync' ),
+					'confirm_apply'  => __( 'Apply will begin changing slugs immediately. Have you reviewed a preview and taken a database backup?', 'slugsync' ),
 				),
 				'hierarchical' => $hierarchical,
 				'productType'  => 'product',
@@ -1885,9 +1885,9 @@ class Slug_Sync {
 
 		$overrides = self::detected_plugins(
 			array(
-				'permalink-manager'     => __( 'Permalink Manager', 'slug-sync' ),
-				'permalink-manager-pro' => __( 'Permalink Manager Pro', 'slug-sync' ),
-				'custom-permalinks'     => __( 'Custom Permalinks', 'slug-sync' ),
+				'permalink-manager'     => __( 'Permalink Manager', 'slugsync' ),
+				'permalink-manager-pro' => __( 'Permalink Manager Pro', 'slugsync' ),
+				'custom-permalinks'     => __( 'Custom Permalinks', 'slugsync' ),
 			),
 			$active
 		);
@@ -1896,17 +1896,17 @@ class Slug_Sync {
 			$notices[] = array(
 				'code'  => 'public_url_override',
 				'level' => 'warning',
-				'title' => __( 'Another plugin may control the public URL', 'slug-sync' ),
+				'title' => __( 'Another plugin may control the public URL', 'slugsync' ),
 				/* translators: %s: comma-separated plugin names. */
-				'body'  => sprintf( __( '%s is active. It can override the native WordPress permalink, so changing post_name may not change the address visitors see. Preview first and verify several resulting URLs before Apply.', 'slug-sync' ), implode( ', ', $overrides ) ),
+				'body'  => sprintf( __( '%s is active. It can override the native WordPress permalink, so changing post_name may not change the address visitors see. Preview first and verify several resulting URLs before Apply.', 'slugsync' ), implode( ', ', $overrides ) ),
 			);
 		}
 
 		$languages = self::detected_plugins(
 			array(
-				'sitepress-multilingual-cms' => __( 'WPML', 'slug-sync' ),
-				'polylang'                    => __( 'Polylang', 'slug-sync' ),
-				'polylang-pro'                => __( 'Polylang Pro', 'slug-sync' ),
+				'sitepress-multilingual-cms' => __( 'WPML', 'slugsync' ),
+				'polylang'                    => __( 'Polylang', 'slugsync' ),
+				'polylang-pro'                => __( 'Polylang Pro', 'slugsync' ),
 			),
 			$active
 		);
@@ -1915,29 +1915,29 @@ class Slug_Sync {
 			$notices[] = array(
 				'code'  => 'multilingual',
 				'level' => 'warning',
-				'title' => __( 'Translated URLs need separate review', 'slug-sync' ),
+				'title' => __( 'Translated URLs need separate review', 'slugsync' ),
 				/* translators: %s: comma-separated plugin names. */
-				'body'  => sprintf( __( '%s is active. Slug Sync processes matching WordPress posts but does not coordinate translation relationships or language URL structures. Review every language represented in the changes report.', 'slug-sync' ), implode( ', ', $languages ) ),
+				'body'  => sprintf( __( '%s is active. SlugSync processes matching WordPress posts but does not coordinate translation relationships or language URL structures. Review every language represented in the changes report.', 'slugsync' ), implode( ', ', $languages ) ),
 			);
 		}
 
-		$redirection = self::detected_plugins( array( 'redirection' => __( 'Redirection', 'slug-sync' ) ), $active );
+		$redirection = self::detected_plugins( array( 'redirection' => __( 'Redirection', 'slugsync' ) ), $active );
 
 		if ( $redirection ) {
 			$notices[] = array(
 				'code'         => 'redirection',
 				'level'        => 'info',
-				'title'        => __( 'Redirection is ready for the redirect report', 'slug-sync' ),
-				'body'         => __( 'After Apply, download Slug Sync\'s two-column redirect CSV and import it into Redirection. Slug Sync does not write Redirection\'s tables or settings.', 'slug-sync' ),
+				'title'        => __( 'Redirection is ready for the redirect report', 'slugsync' ),
+				'body'         => __( 'After Apply, download SlugSync\'s two-column redirect CSV and import it into Redirection. SlugSync does not write Redirection\'s tables or settings.', 'slugsync' ),
 				'action_url'   => admin_url( 'tools.php?page=redirection.php&sub=import' ),
-				'action_label' => __( 'Open Redirection import', 'slug-sync' ),
+				'action_label' => __( 'Open Redirection import', 'slugsync' ),
 			);
 		}
 
 		$other_redirects = self::detected_plugins(
 			array(
-				'seo-by-rank-math'     => __( 'Rank Math SEO', 'slug-sync' ),
-				'wordpress-seo-premium' => __( 'Yoast SEO Premium', 'slug-sync' ),
+				'seo-by-rank-math'     => __( 'Rank Math SEO', 'slugsync' ),
+				'wordpress-seo-premium' => __( 'Yoast SEO Premium', 'slugsync' ),
 			),
 			$active
 		);
@@ -1946,22 +1946,22 @@ class Slug_Sync {
 			$notices[] = array(
 				'code'  => 'other_redirect_manager',
 				'level' => 'info',
-				'title' => __( 'An SEO redirect tool is active', 'slug-sync' ),
+				'title' => __( 'An SEO redirect tool is active', 'slugsync' ),
 				/* translators: %s: comma-separated plugin names. */
-				'body'  => sprintf( __( '%s is active. Slug Sync creates a portable redirect CSV but does not assume that its redirect module is enabled or write into it automatically.', 'slug-sync' ), implode( ', ', $other_redirects ) ),
+				'body'  => sprintf( __( '%s is active. SlugSync creates a portable redirect CSV but does not assume that its redirect module is enabled or write into it automatically.', 'slugsync' ), implode( ', ', $other_redirects ) ),
 			);
 		}
 
 		$caches = self::detected_plugins(
 			array(
-				'cloudflare'      => __( 'Cloudflare', 'slug-sync' ),
-				'wp-rocket'       => __( 'WP Rocket', 'slug-sync' ),
-				'w3-total-cache'  => __( 'W3 Total Cache', 'slug-sync' ),
-				'wp-super-cache'  => __( 'WP Super Cache', 'slug-sync' ),
-				'litespeed-cache' => __( 'LiteSpeed Cache', 'slug-sync' ),
-				'sg-cachepress'   => __( 'Speed Optimizer', 'slug-sync' ),
-				'breeze'          => __( 'Breeze', 'slug-sync' ),
-				'flying-press'    => __( 'FlyingPress', 'slug-sync' ),
+				'cloudflare'      => __( 'Cloudflare', 'slugsync' ),
+				'wp-rocket'       => __( 'WP Rocket', 'slugsync' ),
+				'w3-total-cache'  => __( 'W3 Total Cache', 'slugsync' ),
+				'wp-super-cache'  => __( 'WP Super Cache', 'slugsync' ),
+				'litespeed-cache' => __( 'LiteSpeed Cache', 'slugsync' ),
+				'sg-cachepress'   => __( 'Speed Optimizer', 'slugsync' ),
+				'breeze'          => __( 'Breeze', 'slugsync' ),
+				'flying-press'    => __( 'FlyingPress', 'slugsync' ),
 			),
 			$active
 		);
@@ -1970,9 +1970,9 @@ class Slug_Sync {
 			$notices[] = array(
 				'code'  => 'cache',
 				'level' => 'info',
-				'title' => __( 'Plan a cache purge after Apply', 'slug-sync' ),
+				'title' => __( 'Plan a cache purge after Apply', 'slugsync' ),
 				/* translators: %s: comma-separated plugin names. */
-				'body'  => sprintf( __( '%s is active. Purge its page/CDN cache after the run finishes, then test old and new URLs. This check cannot see server-level caches or a Cloudflare zone configured without a WordPress plugin.', 'slug-sync' ), implode( ', ', $caches ) ),
+				'body'  => sprintf( __( '%s is active. Purge its page/CDN cache after the run finishes, then test old and new URLs. This check cannot see server-level caches or a Cloudflare zone configured without a WordPress plugin.', 'slugsync' ), implode( ', ', $caches ) ),
 			);
 		}
 
@@ -1988,20 +1988,20 @@ class Slug_Sync {
 		<section class="slug-sync-preflight" aria-labelledby="slug-sync-preflight-heading">
 			<div class="slug-sync-preflight-head">
 				<div>
-					<span class="slug-sync-eyebrow"><?php esc_html_e( 'Read-only check', 'slug-sync' ); ?></span>
-					<h2 id="slug-sync-preflight-heading"><?php esc_html_e( 'Compatibility preflight', 'slug-sync' ); ?></h2>
+					<span class="slug-sync-eyebrow"><?php esc_html_e( 'Read-only check', 'slugsync' ); ?></span>
+					<h2 id="slug-sync-preflight-heading"><?php esc_html_e( 'Compatibility preflight', 'slugsync' ); ?></h2>
 				</div>
 				<span class="slug-sync-preflight-count">
 					<?php
 					printf(
 						/* translators: %d: number of compatibility notices. */
-						esc_html( _n( '%d notice', '%d notices', count( $notices ), 'slug-sync' ) ),
+						esc_html( _n( '%d notice', '%d notices', count( $notices ), 'slugsync' ) ),
 						absint( count( $notices ) )
 					);
 					?>
 				</span>
 			</div>
-			<p><?php esc_html_e( 'Slug Sync checked active plugins that commonly affect public URLs, translations, redirects or caching. Nothing was changed.', 'slug-sync' ); ?></p>
+			<p><?php esc_html_e( 'SlugSync checked active plugins that commonly affect public URLs, translations, redirects or caching. Nothing was changed.', 'slugsync' ); ?></p>
 
 			<?php if ( $notices ) : ?>
 				<ul class="slug-sync-preflight-list">
@@ -2016,7 +2016,7 @@ class Slug_Sync {
 					<?php endforeach; ?>
 				</ul>
 			<?php else : ?>
-				<p class="slug-sync-preflight-clear"><strong><?php esc_html_e( 'No known integration warning was found.', 'slug-sync' ); ?></strong> <?php esc_html_e( 'Custom code and server/CDN configuration still require your own review.', 'slug-sync' ); ?></p>
+				<p class="slug-sync-preflight-clear"><strong><?php esc_html_e( 'No known integration warning was found.', 'slugsync' ); ?></strong> <?php esc_html_e( 'Custom code and server/CDN configuration still require your own review.', 'slugsync' ); ?></p>
 			<?php endif; ?>
 		</section>
 		<?php
@@ -2069,17 +2069,17 @@ class Slug_Sync {
 		$same_public_url = max( 0, $risk['published'] - $risk['url_changes'] );
 		?>
 		<section class="slug-sync-risk" aria-labelledby="slug-sync-risk-heading">
-			<span class="slug-sync-eyebrow"><?php esc_html_e( 'Preview result', 'slug-sync' ); ?></span>
-			<h2 id="slug-sync-risk-heading"><?php esc_html_e( 'URL change summary', 'slug-sync' ); ?></h2>
-			<p><?php esc_html_e( 'These are measured results from this Preview, not a guessed SEO score.', 'slug-sync' ); ?></p>
+			<span class="slug-sync-eyebrow"><?php esc_html_e( 'Preview result', 'slugsync' ); ?></span>
+			<h2 id="slug-sync-risk-heading"><?php esc_html_e( 'URL change summary', 'slugsync' ); ?></h2>
+			<p><?php esc_html_e( 'These are measured results from this Preview, not a guessed SEO score.', 'slugsync' ); ?></p>
 			<div class="slug-sync-risk-grid">
-				<div><strong><?php echo esc_html( number_format_i18n( $risk['changes'] ) ); ?></strong><span><?php esc_html_e( 'proposed changes', 'slug-sync' ); ?></span></div>
-				<div><strong><?php echo esc_html( number_format_i18n( $risk['published'] ) ); ?></strong><span><?php esc_html_e( 'published items', 'slug-sync' ); ?></span></div>
-				<div><strong><?php echo esc_html( number_format_i18n( $risk['url_changes'] ) ); ?></strong><span><?php esc_html_e( 'public URL changes', 'slug-sync' ); ?></span></div>
-				<div><strong><?php echo esc_html( number_format_i18n( $risk['automatic_redirects'] ) ); ?></strong><span><?php esc_html_e( 'covered by WordPress old-slug redirects', 'slug-sync' ); ?></span></div>
-				<div><strong><?php echo esc_html( number_format_i18n( $risk['manual_redirects'] ) ); ?></strong><span><?php esc_html_e( 'need redirect import', 'slug-sync' ); ?></span></div>
-				<div><strong><?php echo esc_html( number_format_i18n( $risk['adjusted'] ) ); ?></strong><span><?php esc_html_e( 'adjusted for conflicts or slug rules', 'slug-sync' ); ?></span></div>
-				<div><strong><?php echo esc_html( number_format_i18n( $errors ) ); ?></strong><span><?php esc_html_e( 'run errors', 'slug-sync' ); ?></span></div>
+				<div><strong><?php echo esc_html( number_format_i18n( $risk['changes'] ) ); ?></strong><span><?php esc_html_e( 'proposed changes', 'slugsync' ); ?></span></div>
+				<div><strong><?php echo esc_html( number_format_i18n( $risk['published'] ) ); ?></strong><span><?php esc_html_e( 'published items', 'slugsync' ); ?></span></div>
+				<div><strong><?php echo esc_html( number_format_i18n( $risk['url_changes'] ) ); ?></strong><span><?php esc_html_e( 'public URL changes', 'slugsync' ); ?></span></div>
+				<div><strong><?php echo esc_html( number_format_i18n( $risk['automatic_redirects'] ) ); ?></strong><span><?php esc_html_e( 'covered by WordPress old-slug redirects', 'slugsync' ); ?></span></div>
+				<div><strong><?php echo esc_html( number_format_i18n( $risk['manual_redirects'] ) ); ?></strong><span><?php esc_html_e( 'need redirect import', 'slugsync' ); ?></span></div>
+				<div><strong><?php echo esc_html( number_format_i18n( $risk['adjusted'] ) ); ?></strong><span><?php esc_html_e( 'adjusted for conflicts or slug rules', 'slugsync' ); ?></span></div>
+				<div><strong><?php echo esc_html( number_format_i18n( $errors ) ); ?></strong><span><?php esc_html_e( 'run errors', 'slugsync' ); ?></span></div>
 			</div>
 
 			<?php if ( $same_public_url ) : ?>
@@ -2087,7 +2087,7 @@ class Slug_Sync {
 					<?php
 					printf(
 						/* translators: %d: number of published slug changes whose public URL is unchanged. */
-						esc_html( _n( '%d published slug change keeps the same previewed public URL under the current permalink behavior.', '%d published slug changes keep the same previewed public URL under the current permalink behavior.', $same_public_url, 'slug-sync' ) ),
+						esc_html( _n( '%d published slug change keeps the same previewed public URL under the current permalink behavior.', '%d published slug changes keep the same previewed public URL under the current permalink behavior.', $same_public_url, 'slugsync' ) ),
 						absint( $same_public_url )
 					);
 					?>
@@ -2099,7 +2099,7 @@ class Slug_Sync {
 					<?php
 					printf(
 						/* translators: %d: number of unpublished items in the preview. */
-						esc_html( _n( '%d proposed change is for an unpublished item and has no public redirect row.', '%d proposed changes are for unpublished items and have no public redirect rows.', $risk['unpublished'], 'slug-sync' ) ),
+						esc_html( _n( '%d proposed change is for an unpublished item and has no public redirect row.', '%d proposed changes are for unpublished items and have no public redirect rows.', $risk['unpublished'], 'slugsync' ) ),
 						absint( $risk['unpublished'] )
 					);
 					?>
@@ -2107,11 +2107,11 @@ class Slug_Sync {
 			<?php endif; ?>
 
 			<?php if ( $risk['manual_redirects'] ) : ?>
-				<p class="slug-sync-risk-warning"><strong><?php esc_html_e( 'Redirect action required:', 'slug-sync' ); ?></strong> <?php esc_html_e( 'Import the redirect report after Apply because WordPress does not redirect old hierarchical URLs on its own.', 'slug-sync' ); ?></p>
+				<p class="slug-sync-risk-warning"><strong><?php esc_html_e( 'Redirect action required:', 'slugsync' ); ?></strong> <?php esc_html_e( 'Import the redirect report after Apply because WordPress does not redirect old hierarchical URLs on its own.', 'slugsync' ); ?></p>
 			<?php endif; ?>
 
 			<?php if ( $risk['adjusted'] ) : ?>
-				<p class="slug-sync-risk-warning"><strong><?php esc_html_e( 'Manual review required:', 'slug-sync' ); ?></strong> <?php esc_html_e( 'Check the note and conflict_reason columns for every adjusted target before Apply.', 'slug-sync' ); ?></p>
+				<p class="slug-sync-risk-warning"><strong><?php esc_html_e( 'Manual review required:', 'slugsync' ); ?></strong> <?php esc_html_e( 'Check the note and conflict_reason columns for every adjusted target before Apply.', 'slugsync' ); ?></p>
 			<?php endif; ?>
 		</section>
 		<?php
@@ -2122,7 +2122,7 @@ class Slug_Sync {
 	 */
 	public static function render() {
 		if ( ! current_user_can( self::CAP ) ) {
-			wp_die( esc_html__( 'You do not have permission to access this page.', 'slug-sync' ) );
+			wp_die( esc_html__( 'You do not have permission to access this page.', 'slugsync' ) );
 		}
 
 		echo '<div class="wrap slug-sync-admin">';
@@ -2130,7 +2130,7 @@ class Slug_Sync {
 		printf(
 			'<h1 class="slug-sync-brand"><img src="%s" alt="%s" width="400" height="130"></h1>',
 			esc_url( plugins_url( 'assets/logo.png', __FILE__ ) ),
-			esc_attr__( 'Slug Sync', 'slug-sync' )
+			esc_attr__( 'SlugSync', 'slugsync' )
 		);
 		$ran_batch = false;
 
@@ -2164,14 +2164,14 @@ class Slug_Sync {
 	 */
 	private static function status_label( $status ) {
 		$labels = array(
-			'running'     => __( 'In progress', 'slug-sync' ),
-			'paused'      => __( 'Paused', 'slug-sync' ),
-			'completed'   => __( 'Completed', 'slug-sync' ),
-			'canceled'    => __( 'Stopped', 'slug-sync' ),
-			'rolled_back' => __( 'Undone', 'slug-sync' ),
+			'running'     => __( 'In progress', 'slugsync' ),
+			'paused'      => __( 'Paused', 'slugsync' ),
+			'completed'   => __( 'Completed', 'slugsync' ),
+			'canceled'    => __( 'Stopped', 'slugsync' ),
+			'rolled_back' => __( 'Undone', 'slugsync' ),
 		);
 
-		return isset( $labels[ $status ] ) ? $labels[ $status ] : __( 'Unknown', 'slug-sync' );
+		return isset( $labels[ $status ] ) ? $labels[ $status ] : __( 'Unknown', 'slugsync' );
 	}
 
 	/**
@@ -2184,22 +2184,22 @@ class Slug_Sync {
 		$labels = array();
 
 		if ( ! empty( $run['addon_rules'] ) ) {
-			$labels[] = __( 'add-on rules', 'slug-sync' );
+			$labels[] = __( 'add-on rules', 'slugsync' );
 		}
 
 		if ( ! empty( $run['transliterate'] ) ) {
-			$labels[] = __( 'Latin transliteration', 'slug-sync' );
+			$labels[] = __( 'Latin transliteration', 'slugsync' );
 		}
 
 		if ( ! empty( $run['remove_sku'] ) ) {
-			$labels[] = __( 'exact SKU removal', 'slug-sync' );
+			$labels[] = __( 'exact SKU removal', 'slugsync' );
 		}
 
 		if ( ! empty( $run['include_sku'] ) ) {
-			$labels[] = __( 'assigned SKU included', 'slug-sync' );
+			$labels[] = __( 'assigned SKU included', 'slugsync' );
 		}
 
-		return $labels ? implode( ' · ', $labels ) : __( 'Title only', 'slug-sync' );
+		return $labels ? implode( ' · ', $labels ) : __( 'Title only', 'slugsync' );
 	}
 
 	/**
@@ -2218,7 +2218,7 @@ class Slug_Sync {
 		$fill_class = 'slug-sync-progress-fill' . ( $working ? ' is-working' : '' );
 		?>
 		<div class="slug-sync-progress">
-			<div class="slug-sync-progress-track" role="progressbar" aria-valuenow="<?php echo esc_attr( $percent ); ?>" aria-valuemin="0" aria-valuemax="100" aria-label="<?php esc_attr_e( 'Run progress', 'slug-sync' ); ?>">
+			<div class="slug-sync-progress-track" role="progressbar" aria-valuenow="<?php echo esc_attr( $percent ); ?>" aria-valuemin="0" aria-valuemax="100" aria-label="<?php esc_attr_e( 'Run progress', 'slugsync' ); ?>">
 				<div class="<?php echo esc_attr( $fill_class ); ?>" style="width:<?php echo esc_attr( $percent ); ?>%"></div>
 			</div>
 			<div class="slug-sync-progress-meta" aria-live="polite">
@@ -2227,7 +2227,7 @@ class Slug_Sync {
 					<?php
 					printf(
 						/* translators: 1: items scanned, 2: total items. */
-						esc_html__( '%1$s of %2$s scanned', 'slug-sync' ),
+						esc_html__( '%1$s of %2$s scanned', 'slugsync' ),
 						esc_html( number_format_i18n( $done ) ),
 						esc_html( number_format_i18n( $total ) )
 					);
@@ -2328,12 +2328,12 @@ class Slug_Sync {
 		?>
 		<div class="slug-sync-findings">
 			<div class="slug-sync-findings-head">
-				<h3><?php esc_html_e( 'Items found', 'slug-sync' ); ?></h3>
+				<h3><?php esc_html_e( 'Items found', 'slugsync' ); ?></h3>
 				<span class="slug-sync-findings-count">
 					<?php
 					printf(
 						/* translators: %s: number of matching items found so far. */
-						esc_html__( '%s found so far', 'slug-sync' ),
+						esc_html__( '%s found so far', 'slugsync' ),
 						esc_html( number_format_i18n( $found ) )
 					);
 					?>
@@ -2345,7 +2345,7 @@ class Slug_Sync {
 					<?php
 						printf(
 							/* translators: 1: recent items shown on screen, 2: total items found. */
-							esc_html__( 'Showing the %1$d most recent matches. The changes report contains all %2$d.', 'slug-sync' ),
+							esc_html__( 'Showing the %1$d most recent matches. The changes report contains all %2$d.', 'slugsync' ),
 							absint( count( $recent ) ),
 							absint( $found )
 						);
@@ -2362,17 +2362,17 @@ class Slug_Sync {
 								<code><?php echo esc_html( $finding['new'] ); ?></code>
 								<?php if ( $finding['note'] ) : ?><span class="description"><?php echo esc_html( $finding['note'] ); ?></span><?php endif; ?>
 							</span>
-							<?php if ( $is_new ) : ?><span class="slug-sync-finding-new"><?php esc_html_e( 'New this batch', 'slug-sync' ); ?></span><?php endif; ?>
+							<?php if ( $is_new ) : ?><span class="slug-sync-finding-new"><?php esc_html_e( 'New this batch', 'slugsync' ); ?></span><?php endif; ?>
 						</li>
 					<?php endforeach; ?>
 				</ol>
 			<?php else : ?>
-				<p class="slug-sync-findings-note"><?php esc_html_e( 'No matching slug changes have been found yet.', 'slug-sync' ); ?></p>
+				<p class="slug-sync-findings-note"><?php esc_html_e( 'No matching slug changes have been found yet.', 'slugsync' ); ?></p>
 			<?php endif; ?>
 
 			<?php if ( $messages ) : ?>
 				<div class="slug-sync-batch-messages">
-					<strong><?php esc_html_e( 'Batch messages', 'slug-sync' ); ?></strong>
+					<strong><?php esc_html_e( 'Batch messages', 'slugsync' ); ?></strong>
 					<ul>
 						<?php foreach ( array_slice( $messages, 0, 10 ) as $message ) : ?>
 							<li><?php echo esc_html( $message ); ?></li>
@@ -2399,12 +2399,12 @@ class Slug_Sync {
 				<?php wp_nonce_field( 'slug_sync' ); ?>
 				<input type="hidden" name="slug_sync_run" value="1">
 				<input type="hidden" name="run_id" value="<?php echo esc_attr( $run_id ); ?>">
-				<button class="button button-primary"><?php echo esc_html( $auto ? __( 'Continue', 'slug-sync' ) : __( 'Resume run', 'slug-sync' ) ); ?></button>
+				<button class="button button-primary"><?php echo esc_html( $auto ? __( 'Continue', 'slugsync' ) : __( 'Resume run', 'slugsync' ) ); ?></button>
 			</form>
-			<form class="slug-sync-stop-form slug-sync-confirm-form" method="post" action="<?php echo esc_url( self::page_url() ); ?>" data-confirm="<?php echo esc_attr__( 'Stop this run? Work already completed will not be reversed, and the partial reports will be kept.', 'slug-sync' ); ?>">
+			<form class="slug-sync-stop-form slug-sync-confirm-form" method="post" action="<?php echo esc_url( self::page_url() ); ?>" data-confirm="<?php echo esc_attr__( 'Stop this run? Work already completed will not be reversed, and the partial reports will be kept.', 'slugsync' ); ?>">
 				<?php wp_nonce_field( 'slug_sync' ); ?>
 				<input type="hidden" name="run_id" value="<?php echo esc_attr( $run_id ); ?>">
-				<button class="button" name="slug_sync_cancel" value="1"><?php esc_html_e( 'Stop run', 'slug-sync' ); ?></button>
+				<button class="button" name="slug_sync_cancel" value="1"><?php esc_html_e( 'Stop run', 'slugsync' ); ?></button>
 			</form>
 		</div>
 		<?php
@@ -2426,15 +2426,15 @@ class Slug_Sync {
 		$types    = self::post_types();
 
 		echo '<section class="slug-sync-history-panel">';
-		echo '<h2>' . esc_html__( 'Previous runs', 'slug-sync' ) . '</h2>';
-		echo '<p>' . esc_html__( 'Each row is one preview or apply run. Reports can be downloaded at any time; only applied changes can be undone.', 'slug-sync' ) . '</p>';
+		echo '<h2>' . esc_html__( 'Previous runs', 'slugsync' ) . '</h2>';
+		echo '<p>' . esc_html__( 'Each row is one preview or apply run. Reports can be downloaded at any time; only applied changes can be undone.', 'slugsync' ) . '</p>';
 		echo '<div class="slug-sync-table-wrap"><table class="widefat striped slug-sync-history"><thead><tr>';
-		echo '<th>' . esc_html__( 'Started', 'slug-sync' ) . '</th>';
-		echo '<th>' . esc_html__( 'What ran', 'slug-sync' ) . '</th>';
-		echo '<th>' . esc_html__( 'Status', 'slug-sync' ) . '</th>';
-		echo '<th>' . esc_html__( 'Progress', 'slug-sync' ) . '</th>';
-		echo '<th>' . esc_html__( 'Reports', 'slug-sync' ) . '</th>';
-		echo '<th>' . esc_html__( 'Actions', 'slug-sync' ) . '</th>';
+		echo '<th>' . esc_html__( 'Started', 'slugsync' ) . '</th>';
+		echo '<th>' . esc_html__( 'What ran', 'slugsync' ) . '</th>';
+		echo '<th>' . esc_html__( 'Status', 'slugsync' ) . '</th>';
+		echo '<th>' . esc_html__( 'Progress', 'slugsync' ) . '</th>';
+		echo '<th>' . esc_html__( 'Reports', 'slugsync' ) . '</th>';
+		echo '<th>' . esc_html__( 'Actions', 'slugsync' ) . '</th>';
 		echo '</tr></thead><tbody>';
 
 		$latest_rendered = false;
@@ -2459,28 +2459,28 @@ class Slug_Sync {
 			$redirects       = self::report_path( $run_id, 'redirects' );
 			$is_active       = ! self::run_is_finished( $run );
 			$is_apply        = isset( $run['mode'] ) && 'apply' === $run['mode'];
-			$write_label     = isset( $run['write'] ) && 'hooks' === $run['write'] ? __( 'standard WordPress update', 'slug-sync' ) : __( 'quiet update', 'slug-sync' );
+			$write_label     = isset( $run['write'] ) && 'hooks' === $run['write'] ? __( 'standard WordPress update', 'slugsync' ) : __( 'quiet update', 'slugsync' );
 			$transform_label = self::transformation_label( $run );
 			?>
 			<tr<?php echo $is_latest ? ' class="slug-sync-latest-run"' : ''; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- fixed attribute string. ?>>
 				<td>
 					<?php if ( $is_latest ) : ?>
-						<span class="slug-sync-latest-badge"><?php esc_html_e( 'Latest run', 'slug-sync' ); ?></span><br>
+						<span class="slug-sync-latest-badge"><?php esc_html_e( 'Latest run', 'slugsync' ); ?></span><br>
 					<?php endif; ?>
 					<?php echo esc_html( $created_at ? wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $created_at ) : '—' ); ?>
 				</td>
 				<td>
 					<strong><?php echo esc_html( $type_label ); ?></strong><br>
-					<span class="description"><?php echo esc_html( $is_apply ? __( 'Apply', 'slug-sync' ) . ' / ' . $write_label : __( 'Preview', 'slug-sync' ) ); ?></span><br>
+					<span class="description"><?php echo esc_html( $is_apply ? __( 'Apply', 'slugsync' ) . ' / ' . $write_label : __( 'Preview', 'slugsync' ) ); ?></span><br>
 					<span class="description"><?php echo esc_html( $transform_label ); ?></span>
-					<details class="slug-sync-technical"><summary><?php esc_html_e( 'Technical ID', 'slug-sync' ); ?></summary><code><?php echo esc_html( $run_id ); ?></code></details>
+					<details class="slug-sync-technical"><summary><?php esc_html_e( 'Technical ID', 'slugsync' ); ?></summary><code><?php echo esc_html( $run_id ); ?></code></details>
 				</td>
 				<td><strong><?php echo esc_html( self::status_label( $status ) ); ?></strong></td>
 				<td>
 					<?php
 					printf(
 						/* translators: 1: scanned posts, 2: total posts. */
-						esc_html__( '%1$d / %2$d scanned', 'slug-sync' ),
+						esc_html__( '%1$d / %2$d scanned', 'slugsync' ),
 						absint( $done ),
 						absint( $total )
 					);
@@ -2489,7 +2489,7 @@ class Slug_Sync {
 						<?php
 						printf(
 							/* translators: 1: changed posts, 2: errors. */
-							esc_html__( '%1$d changes, %2$d errors', 'slug-sync' ),
+							esc_html__( '%1$d changes, %2$d errors', 'slugsync' ),
 							absint( $changed ),
 							absint( $errors )
 						);
@@ -2499,10 +2499,10 @@ class Slug_Sync {
 				<td>
 					<div class="slug-sync-report-actions">
 					<?php if ( is_file( $changes ) ) : ?>
-						<a class="button button-small slug-sync-report-button slug-sync-report-button--changes" href="<?php echo esc_url( self::report_download_url( 'changes', $run_id ) ); ?>"><?php esc_html_e( 'Download changes', 'slug-sync' ); ?></a>
+						<a class="button button-small slug-sync-report-button slug-sync-report-button--changes" href="<?php echo esc_url( self::report_download_url( 'changes', $run_id ) ); ?>"><?php esc_html_e( 'Download changes', 'slugsync' ); ?></a>
 					<?php endif; ?>
 					<?php if ( is_file( $redirects ) ) : ?>
-						<a class="button button-small slug-sync-report-button slug-sync-report-button--redirects" href="<?php echo esc_url( self::report_download_url( 'redirects', $run_id ) ); ?>"><?php esc_html_e( 'Download redirects', 'slug-sync' ); ?></a>
+						<a class="button button-small slug-sync-report-button slug-sync-report-button--redirects" href="<?php echo esc_url( self::report_download_url( 'redirects', $run_id ) ); ?>"><?php esc_html_e( 'Download redirects', 'slugsync' ); ?></a>
 					<?php endif; ?>
 					</div>
 				</td>
@@ -2510,10 +2510,10 @@ class Slug_Sync {
 					<?php if ( $is_active ) : ?>
 						<?php self::run_controls( $run ); ?>
 					<?php elseif ( $is_apply && $changed > 0 && 'rolled_back' !== $status && is_file( $changes ) ) : ?>
-						<form class="slug-sync-confirm-form" method="post" action="<?php echo esc_url( self::page_url() ); ?>" data-confirm="<?php echo esc_attr__( 'Undo the slug changes from this run? Items edited since the run will be left unchanged.', 'slug-sync' ); ?>">
+						<form class="slug-sync-confirm-form" method="post" action="<?php echo esc_url( self::page_url() ); ?>" data-confirm="<?php echo esc_attr__( 'Undo the slug changes from this run? Items edited since the run will be left unchanged.', 'slugsync' ); ?>">
 							<?php wp_nonce_field( 'slug_sync' ); ?>
 							<input type="hidden" name="run_id" value="<?php echo esc_attr( $run_id ); ?>">
-							<button class="button button-small" name="slug_sync_rollback" value="1"><?php esc_html_e( 'Undo changes', 'slug-sync' ); ?></button>
+							<button class="button button-small" name="slug_sync_rollback" value="1"><?php esc_html_e( 'Undo changes', 'slugsync' ); ?></button>
 						</form>
 					<?php else : ?>
 						<span aria-hidden="true">—</span>
@@ -2524,23 +2524,23 @@ class Slug_Sync {
 		}
 
 		echo '</tbody></table></div>';
-		echo '<p class="description"><strong>' . esc_html__( 'Changes report:', 'slug-sync' ) . '</strong> ' .
-			esc_html__( 'shows each old and proposed/new URL and supports Undo.', 'slug-sync' ) . ' <strong>' .
-			esc_html__( 'Redirect report:', 'slug-sync' ) . '</strong> ' .
-			esc_html__( 'contains source and destination pairs for published items, ready for a redirect tool.', 'slug-sync' ) . '</p>';
+		echo '<p class="description"><strong>' . esc_html__( 'Changes report:', 'slugsync' ) . '</strong> ' .
+			esc_html__( 'shows each old and proposed/new URL and supports Undo.', 'slugsync' ) . ' <strong>' .
+			esc_html__( 'Redirect report:', 'slugsync' ) . '</strong> ' .
+			esc_html__( 'contains source and destination pairs for published items, ready for a redirect tool.', 'slugsync' ) . '</p>';
 
 		if ( count( $runs ) > 20 ) {
 			if ( $show_all ) {
 				printf(
 					'<p><a class="button" href="%s">%s</a></p>',
 					esc_url( self::page_url() ),
-					esc_html__( 'Show the latest 20 runs', 'slug-sync' )
+					esc_html__( 'Show the latest 20 runs', 'slugsync' )
 				);
 			} else {
 				printf(
 					'<p><a class="button" href="%s">%s</a></p>',
 					esc_url( add_query_arg( 'slug_sync_history', 'all', self::page_url() ) ),
-					esc_html__( 'Show all run history', 'slug-sync' )
+					esc_html__( 'Show all run history', 'slugsync' )
 				);
 			}
 		}
@@ -2559,30 +2559,30 @@ class Slug_Sync {
 			return;
 		}
 
-		echo '<hr><h2>' . esc_html__( 'Reports from an earlier version', 'slug-sync' ) . '</h2><p>';
+		echo '<hr><h2>' . esc_html__( 'Reports from an earlier version', 'slugsync' ) . '</h2><p>';
 
 		printf(
 			'<a class="button slug-sync-report-button slug-sync-report-button--changes" href="%s">%s</a> ',
 			esc_url( self::report_download_url( 'changes' ) ),
-			esc_html__( 'Download changes', 'slug-sync' )
+			esc_html__( 'Download changes', 'slugsync' )
 		);
 
 		if ( is_file( $redirects ) ) {
 			printf(
 				'<a class="button slug-sync-report-button slug-sync-report-button--redirects" href="%s">%s</a>',
 				esc_url( self::report_download_url( 'redirects' ) ),
-				esc_html__( 'Download redirects', 'slug-sync' )
+				esc_html__( 'Download redirects', 'slugsync' )
 			);
 		}
 
 		echo '</p><p class="description">' .
-			esc_html__( 'These files were created before the Previous runs screen was introduced.', 'slug-sync' ) .
+			esc_html__( 'These files were created before the Previous runs screen was introduced.', 'slugsync' ) .
 			'</p>';
 
 		?>
-		<form class="slug-sync-confirm-form" method="post" action="<?php echo esc_url( self::page_url() ); ?>" data-confirm="<?php echo esc_attr__( 'Undo the slug changes recorded in this earlier report?', 'slug-sync' ); ?>">
+		<form class="slug-sync-confirm-form" method="post" action="<?php echo esc_url( self::page_url() ); ?>" data-confirm="<?php echo esc_attr__( 'Undo the slug changes recorded in this earlier report?', 'slugsync' ); ?>">
 			<?php wp_nonce_field( 'slug_sync' ); ?>
-			<p><button class="button" name="slug_sync_rollback" value="1"><?php esc_html_e( 'Undo changes from this report', 'slug-sync' ); ?></button></p>
+			<p><button class="button" name="slug_sync_rollback" value="1"><?php esc_html_e( 'Undo changes from this report', 'slugsync' ); ?></button></p>
 		</form>
 		<?php
 	}
@@ -2602,13 +2602,13 @@ class Slug_Sync {
 			$is_apply  = isset( $active['mode'] ) && 'apply' === $active['mode'];
 			?>
 			<div class="slug-sync-active">
-				<h2><?php esc_html_e( 'Finish your current run', 'slug-sync' ); ?></h2>
+				<h2><?php esc_html_e( 'Finish your current run', 'slugsync' ); ?></h2>
 				<p>
 					<?php
 					printf(
 						/* translators: 1: run type, 2: content type, 3: scanned count, 4: total count. */
-						esc_html__( 'An unfinished %1$s for %2$s has scanned %3$d of %4$d items. Resume continues from the last completed batch; it does not start over.', 'slug-sync' ),
-						$is_apply ? esc_html__( 'Apply run', 'slug-sync' ) : esc_html__( 'Preview', 'slug-sync' ),
+						esc_html__( 'An unfinished %1$s for %2$s has scanned %3$d of %4$d items. Resume continues from the last completed batch; it does not start over.', 'slugsync' ),
+						$is_apply ? esc_html__( 'Apply run', 'slugsync' ) : esc_html__( 'Preview', 'slugsync' ),
 						esc_html( $type_name ),
 						absint( $done ),
 						absint( $total )
@@ -2616,9 +2616,9 @@ class Slug_Sync {
 					?>
 				</p>
 				<?php self::progress_bar( $done, $total ); ?>
-				<p class="description"><strong><?php esc_html_e( 'Slug building:', 'slug-sync' ); ?></strong> <?php echo esc_html( self::transformation_label( $active ) ); ?></p>
+				<p class="description"><strong><?php esc_html_e( 'Slug building:', 'slugsync' ); ?></strong> <?php echo esc_html( self::transformation_label( $active ) ); ?></p>
 				<?php if ( $is_apply ) : ?>
-					<p class="description"><?php esc_html_e( 'Stopping keeps changes already made and preserves the partial reports. It does not undo completed batches.', 'slug-sync' ); ?></p>
+					<p class="description"><?php esc_html_e( 'Stopping keeps changes already made and preserves the partial reports. It does not undo completed batches.', 'slugsync' ); ?></p>
 				<?php endif; ?>
 				<?php self::run_controls( $active ); ?>
 			</div>
@@ -2675,14 +2675,14 @@ class Slug_Sync {
 			?>
 		<?php else : ?>
 			<div class="slug-sync-intro">
-				<p><strong><?php esc_html_e( 'Build clean URL slugs from content titles—safely and in batches.', 'slug-sync' ); ?></strong></p>
+				<p><strong><?php esc_html_e( 'Build clean URL slugs from content titles—safely and in batches.', 'slugsync' ); ?></strong></p>
 				<p>
-					<?php esc_html_e( 'A slug is the last part of a URL. For example, “Blue Cotton Shirt” normally becomes “blue-cotton-shirt”. Slug Sync can also transliterate the title, leave its assigned WooCommerce SKU out, or add that SKU from product data.', 'slug-sync' ); ?>
+					<?php esc_html_e( 'A slug is the last part of a URL. For example, “Blue Cotton Shirt” normally becomes “blue-cotton-shirt”. SlugSync can also transliterate the title, leave its assigned WooCommerce SKU out, or add that SKU from product data.', 'slugsync' ); ?>
 				</p>
 				<div class="slug-sync-steps">
-					<div class="slug-sync-step"><strong><?php esc_html_e( '1. Preview', 'slug-sync' ); ?></strong><?php esc_html_e( 'See every proposed old and new URL without saving changes.', 'slug-sync' ); ?></div>
-					<div class="slug-sync-step"><strong><?php esc_html_e( '2. Review', 'slug-sync' ); ?></strong><?php esc_html_e( 'Download the changes report and check duplicate-title notes.', 'slug-sync' ); ?></div>
-					<div class="slug-sync-step"><strong><?php esc_html_e( '3. Apply', 'slug-sync' ); ?></strong><?php esc_html_e( 'Run again with Apply selected when the preview looks correct.', 'slug-sync' ); ?></div>
+					<div class="slug-sync-step"><strong><?php esc_html_e( '1. Preview', 'slugsync' ); ?></strong><?php esc_html_e( 'See every proposed old and new URL without saving changes.', 'slugsync' ); ?></div>
+					<div class="slug-sync-step"><strong><?php esc_html_e( '2. Review', 'slugsync' ); ?></strong><?php esc_html_e( 'Download the changes report and check duplicate-title notes.', 'slugsync' ); ?></div>
+					<div class="slug-sync-step"><strong><?php esc_html_e( '3. Apply', 'slugsync' ); ?></strong><?php esc_html_e( 'Run again with Apply selected when the preview looks correct.', 'slugsync' ); ?></div>
 				</div>
 			</div>
 		<?php endif; ?>
@@ -2694,8 +2694,8 @@ class Slug_Sync {
 			self::render_preview_risk( $returned_preview );
 			?>
 			<div class="slug-sync-preview-ready" role="status">
-				<strong><?php esc_html_e( 'Your preview choices are restored below.', 'slug-sync' ); ?></strong>
-				<span><?php esc_html_e( 'Keep them selected so Apply produces the URLs you just reviewed.', 'slug-sync' ); ?></span>
+				<strong><?php esc_html_e( 'Your preview choices are restored below.', 'slugsync' ); ?></strong>
+				<span><?php esc_html_e( 'Keep them selected so Apply produces the URLs you just reviewed.', 'slugsync' ); ?></span>
 			</div>
 			<?php
 		}
@@ -2705,12 +2705,12 @@ class Slug_Sync {
 			<?php wp_nonce_field( 'slug_sync' ); ?>
 
 			<details class="slug-sync-workflow-step" data-slug-sync-step="1" open>
-				<summary id="slug-sync-content-heading"><span class="slug-sync-number">1</span><span class="slug-sync-workflow-title"><?php esc_html_e( 'What should I tidy up?', 'slug-sync' ); ?></span></summary>
+				<summary id="slug-sync-content-heading"><span class="slug-sync-number">1</span><span class="slug-sync-workflow-title"><?php esc_html_e( 'What should I tidy up?', 'slugsync' ); ?></span></summary>
 				<div class="slug-sync-card slug-sync-workflow-body" role="region" aria-labelledby="slug-sync-content-heading">
-				<p><?php esc_html_e( 'Only the selected content type is processed. Attachments and product variations are never included.', 'slug-sync' ); ?></p>
-				<label for="slug-sync-post-type"><strong><?php esc_html_e( 'Content type', 'slug-sync' ); ?></strong></label><br>
+				<p><?php esc_html_e( 'Only the selected content type is processed. Attachments and product variations are never included.', 'slugsync' ); ?></p>
+				<label for="slug-sync-post-type"><strong><?php esc_html_e( 'Content type', 'slugsync' ); ?></strong></label><br>
 				<select name="post_type" id="slug-sync-post-type" class="slug-sync-select" required>
-					<option value="" <?php selected( '', $selected_type ); ?> disabled><?php esc_html_e( 'Choose content', 'slug-sync' ); ?></option>
+					<option value="" <?php selected( '', $selected_type ); ?> disabled><?php esc_html_e( 'Choose content', 'slugsync' ); ?></option>
 					<?php foreach ( $types as $name => $object ) : ?>
 						<option value="<?php echo esc_attr( $name ); ?>" <?php selected( $name, $selected_type ); ?>>
 							<?php echo esc_html( $object->labels->name ); ?>
@@ -2718,107 +2718,107 @@ class Slug_Sync {
 					<?php endforeach; ?>
 				</select>
 				<div class="slug-sync-hierarchy-note" id="slug-sync-hierarchy-note" <?php echo $selected_type && is_post_type_hierarchical( $selected_type ) ? '' : 'hidden'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- fixed attribute string. ?>>
-					<strong><?php esc_html_e( 'This content type nests inside a parent, so plan redirects yourself.', 'slug-sync' ); ?></strong>
-					<p><?php esc_html_e( 'WordPress only redirects an old URL by itself for content that does not nest, such as posts and products. It does not do so for pages, whatever tool changes the slug, so import the redirect report into a redirect plugin after applying.', 'slug-sync' ); ?></p>
-					<p><?php esc_html_e( 'A nested URL also contains its parents\' slugs. Renaming a parent therefore changes the URL of everything beneath it, and those child URLs are not in the reports, which list only items whose own slug changed. Check what sits under anything you rename.', 'slug-sync' ); ?></p>
+					<strong><?php esc_html_e( 'This content type nests inside a parent, so plan redirects yourself.', 'slugsync' ); ?></strong>
+					<p><?php esc_html_e( 'WordPress only redirects an old URL by itself for content that does not nest, such as posts and products. It does not do so for pages, whatever tool changes the slug, so import the redirect report into a redirect plugin after applying.', 'slugsync' ); ?></p>
+					<p><?php esc_html_e( 'A nested URL also contains its parents\' slugs. Renaming a parent therefore changes the URL of everything beneath it, and those child URLs are not in the reports, which list only items whose own slug changed. Check what sits under anything you rename.', 'slugsync' ); ?></p>
 				</div>
 				</div>
 			</details>
 
 			<details class="slug-sync-workflow-step" data-slug-sync-step="2">
-				<summary id="slug-sync-rules-heading"><span class="slug-sync-number">2</span><span class="slug-sync-workflow-title"><?php esc_html_e( 'How should the new slugs be built?', 'slug-sync' ); ?></span></summary>
+				<summary id="slug-sync-rules-heading"><span class="slug-sync-number">2</span><span class="slug-sync-workflow-title"><?php esc_html_e( 'How should the new slugs be built?', 'slugsync' ); ?></span></summary>
 				<div class="slug-sync-card slug-sync-workflow-body" role="region" aria-labelledby="slug-sync-rules-heading">
-				<p><?php esc_html_e( 'These options change only the proposed URL slug. Product titles, SKUs and other stored content stay exactly as they are.', 'slug-sync' ); ?></p>
+				<p><?php esc_html_e( 'These options change only the proposed URL slug. Product titles, SKUs and other stored content stay exactly as they are.', 'slugsync' ); ?></p>
 				<div class="slug-sync-choices">
 					<label class="slug-sync-choice">
 						<input type="checkbox" name="transliterate" value="1" <?php checked( $use_transliterate ); ?>>
 						<span>
-							<strong class="slug-sync-choice-title"><?php esc_html_e( 'Use readable Latin characters', 'slug-sync' ); ?><span class="slug-sync-badge"><?php esc_html_e( 'Included in Free', 'slug-sync' ); ?></span></strong>
-							<span class="slug-sync-choice-help"><?php esc_html_e( 'Creates readable Latin slugs from Cyrillic and Greek titles, and gives the same result on every host. Greek follows the ELOT 743 standard, so Ναύπλιο becomes nafplio. PHP international text support adds further scripts where the server provides it.', 'slug-sync' ); ?></span>
+							<strong class="slug-sync-choice-title"><?php esc_html_e( 'Use readable Latin characters', 'slugsync' ); ?><span class="slug-sync-badge"><?php esc_html_e( 'Included in Free', 'slugsync' ); ?></span></strong>
+							<span class="slug-sync-choice-help"><?php esc_html_e( 'Creates readable Latin slugs from Cyrillic and Greek titles, and gives the same result on every host. Greek follows the ELOT 743 standard, so Ναύπλιο becomes nafplio. PHP international text support adds further scripts where the server provides it.', 'slugsync' ); ?></span>
 							<span class="slug-sync-transform-example"><code>Кофеварка</code><span aria-hidden="true">→</span><code>kofevarka</code></span>
 						</span>
 					</label>
 					<fieldset class="slug-sync-sku-options<?php echo 'product' === $selected_type ? '' : ' is-disabled'; ?>" id="slug-sync-sku-options" aria-disabled="<?php echo 'product' === $selected_type ? 'false' : 'true'; ?>"<?php echo 'product' === $selected_type ? '' : ' disabled'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- fixed attributes. ?>>
-						<legend><strong><?php esc_html_e( 'Assigned SKU in product slugs', 'slug-sync' ); ?></strong><span class="slug-sync-badge"><?php esc_html_e( 'Products only', 'slug-sync' ); ?></span></legend>
-						<span class="slug-sync-choice-help"><?php esc_html_e( 'Choose one treatment for the exact SKU saved in WooCommerce product data.', 'slug-sync' ); ?></span>
+						<legend><strong><?php esc_html_e( 'Assigned SKU in product slugs', 'slugsync' ); ?></strong><span class="slug-sync-badge"><?php esc_html_e( 'Products only', 'slugsync' ); ?></span></legend>
+						<span class="slug-sync-choice-help"><?php esc_html_e( 'Choose one treatment for the exact SKU saved in WooCommerce product data.', 'slugsync' ); ?></span>
 						<div class="slug-sync-choices">
 							<label class="slug-sync-choice">
 								<input type="radio" name="sku_mode" value="keep" required <?php checked( 'keep', $sku_mode ); ?>>
 								<span>
-									<strong class="slug-sync-choice-title"><?php esc_html_e( 'Use the product title as it is', 'slug-sync' ); ?><span class="slug-sync-badge"><?php esc_html_e( 'Recommended', 'slug-sync' ); ?></span></strong>
-									<span class="slug-sync-choice-help"><?php esc_html_e( 'The SKU affects the URL only when it is already part of the product title.', 'slug-sync' ); ?></span>
+									<strong class="slug-sync-choice-title"><?php esc_html_e( 'Use the product title as it is', 'slugsync' ); ?><span class="slug-sync-badge"><?php esc_html_e( 'Recommended', 'slugsync' ); ?></span></strong>
+									<span class="slug-sync-choice-help"><?php esc_html_e( 'The SKU affects the URL only when it is already part of the product title.', 'slugsync' ); ?></span>
 								</span>
 							</label>
 							<label class="slug-sync-choice">
 								<input type="radio" name="sku_mode" value="remove" <?php checked( 'remove', $sku_mode ); ?>>
 								<span>
-									<strong class="slug-sync-choice-title"><?php esc_html_e( 'Leave the assigned SKU out', 'slug-sync' ); ?></strong>
-									<span class="slug-sync-choice-help"><?php esc_html_e( 'When the exact SKU appears in the title, it is left out of the URL. Other model numbers and codes remain, and an unclear name is left alone.', 'slug-sync' ); ?></span>
+									<strong class="slug-sync-choice-title"><?php esc_html_e( 'Leave the assigned SKU out', 'slugsync' ); ?></strong>
+									<span class="slug-sync-choice-help"><?php esc_html_e( 'When the exact SKU appears in the title, it is left out of the URL. Other model numbers and codes remain, and an unclear name is left alone.', 'slugsync' ); ?></span>
 									<span class="slug-sync-transform-example"><code>Blue Shirt · SKU BCS-500</code><span aria-hidden="true">→</span><code>blue-shirt</code></span>
 								</span>
 							</label>
 							<label class="slug-sync-choice">
 								<input type="radio" name="sku_mode" value="include" <?php checked( 'include', $sku_mode ); ?>>
 								<span>
-									<strong class="slug-sync-choice-title"><?php esc_html_e( 'Add the assigned SKU', 'slug-sync' ); ?></strong>
-									<span class="slug-sync-choice-help"><?php esc_html_e( 'Fills the built-in {sku} placeholder from Product data → Inventory → SKU and places it after the title. A code already present is not added twice.', 'slug-sync' ); ?></span>
+									<strong class="slug-sync-choice-title"><?php esc_html_e( 'Add the assigned SKU', 'slugsync' ); ?></strong>
+									<span class="slug-sync-choice-help"><?php esc_html_e( 'Fills the built-in {sku} placeholder from Product data → Inventory → SKU and places it after the title. A code already present is not added twice.', 'slugsync' ); ?></span>
 									<span class="slug-sync-transform-example"><code>Blue Shirt · {sku}</code><span aria-hidden="true">→</span><code>blue-shirt-bcs-500</code></span>
 								</span>
 							</label>
 						</div>
 					</fieldset>
-					<span class="slug-sync-product-unavailable" id="slug-sync-sku-unavailable" <?php echo 'product' === $selected_type ? 'hidden' : ''; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- fixed attribute. ?>><?php esc_html_e( 'Select Products in Step 1 to choose how assigned SKUs affect slugs.', 'slug-sync' ); ?></span>
+					<span class="slug-sync-product-unavailable" id="slug-sync-sku-unavailable" <?php echo 'product' === $selected_type ? 'hidden' : ''; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- fixed attribute. ?>><?php esc_html_e( 'Select Products in Step 1 to choose how assigned SKUs affect slugs.', 'slugsync' ); ?></span>
 				</div>
 				</div>
 			</details>
 
 			<details class="slug-sync-workflow-step" data-slug-sync-step="3">
-				<summary id="slug-sync-action-heading"><span class="slug-sync-number">3</span><span class="slug-sync-workflow-title"><?php esc_html_e( 'Preview first, or apply now?', 'slug-sync' ); ?></span></summary>
+				<summary id="slug-sync-action-heading"><span class="slug-sync-number">3</span><span class="slug-sync-workflow-title"><?php esc_html_e( 'Preview first, or apply now?', 'slugsync' ); ?></span></summary>
 				<div class="slug-sync-card slug-sync-workflow-body" role="region" aria-labelledby="slug-sync-action-heading">
-				<p><?php esc_html_e( 'Start with a preview. Apply uses the same matching rules but saves the proposed slugs.', 'slug-sync' ); ?></p>
+				<p><?php esc_html_e( 'Start with a preview. Apply uses the same matching rules but saves the proposed slugs.', 'slugsync' ); ?></p>
 				<div class="slug-sync-choices">
 					<label class="slug-sync-choice">
 						<input type="radio" name="mode" value="dry" required>
 						<span>
-							<strong class="slug-sync-choice-title"><?php esc_html_e( 'Create a preview', 'slug-sync' ); ?><span class="slug-sync-badge"><?php esc_html_e( 'Recommended', 'slug-sync' ); ?></span></strong>
-							<span class="slug-sync-choice-help"><?php esc_html_e( 'Reads the selected content and creates reports. No slugs, URLs, posts, or products are changed.', 'slug-sync' ); ?></span>
+							<strong class="slug-sync-choice-title"><?php esc_html_e( 'Create a preview', 'slugsync' ); ?><span class="slug-sync-badge"><?php esc_html_e( 'Recommended', 'slugsync' ); ?></span></strong>
+							<span class="slug-sync-choice-help"><?php esc_html_e( 'Reads the selected content and creates reports. No slugs, URLs, posts, or products are changed.', 'slugsync' ); ?></span>
 						</span>
 					</label>
 					<label class="slug-sync-choice">
 						<input type="radio" name="mode" value="apply">
 						<span>
-							<strong class="slug-sync-choice-title"><?php esc_html_e( 'Apply the slug changes', 'slug-sync' ); ?></strong>
-							<span class="slug-sync-choice-help"><?php esc_html_e( 'Changes matching slugs in batches and records reports for downloads and undo. Use this after reviewing a preview.', 'slug-sync' ); ?></span>
+							<strong class="slug-sync-choice-title"><?php esc_html_e( 'Apply the slug changes', 'slugsync' ); ?></strong>
+							<span class="slug-sync-choice-help"><?php esc_html_e( 'Changes matching slugs in batches and records reports for downloads and undo. Use this after reviewing a preview.', 'slugsync' ); ?></span>
 						</span>
 					</label>
 				</div>
 				<div class="slug-sync-apply-note" id="slug-sync-apply-note" hidden>
-					<strong><?php esc_html_e( 'Apply will change live URLs.', 'slug-sync' ); ?></strong>
-					<?php esc_html_e( 'Take a database backup first. Existing indexed URLs are recorded for redirection, and a redirect CSV is created as a second layer.', 'slug-sync' ); ?>
+					<strong><?php esc_html_e( 'Apply will change live URLs.', 'slugsync' ); ?></strong>
+					<?php esc_html_e( 'Take a database backup first. Existing indexed URLs are recorded for redirection, and a redirect CSV is created as a second layer.', 'slugsync' ); ?>
 				</div>
 				</div>
 			</details>
 
 			<details class="slug-sync-workflow-step" data-slug-sync-step="4">
-			<summary id="slug-sync-run-heading"><span class="slug-sync-number">4</span><span class="slug-sync-workflow-title"><?php esc_html_e( 'How it runs', 'slug-sync' ); ?></span><span class="slug-sync-workflow-hint"><?php esc_html_e( 'Sensible defaults already chosen — most people never need this', 'slug-sync' ); ?></span></summary>
+			<summary id="slug-sync-run-heading"><span class="slug-sync-number">4</span><span class="slug-sync-workflow-title"><?php esc_html_e( 'How it runs', 'slugsync' ); ?></span><span class="slug-sync-workflow-hint"><?php esc_html_e( 'Sensible defaults already chosen — most people never need this', 'slugsync' ); ?></span></summary>
 			<div class="slug-sync-card slug-sync-workflow-body" role="region" aria-labelledby="slug-sync-run-heading">
 
 			<section class="slug-sync-sub" aria-labelledby="slug-sync-write-heading">
-				<h2 id="slug-sync-write-heading"><?php esc_html_e( 'How each change is saved', 'slug-sync' ); ?></h2>
-				<p id="slug-sync-write-help"><?php esc_html_e( 'This choice has no effect during a preview because nothing is saved.', 'slug-sync' ); ?></p>
+				<h2 id="slug-sync-write-heading"><?php esc_html_e( 'How each change is saved', 'slugsync' ); ?></h2>
+				<p id="slug-sync-write-help"><?php esc_html_e( 'This choice has no effect during a preview because nothing is saved.', 'slugsync' ); ?></p>
 				<div class="slug-sync-choices">
 					<label class="slug-sync-choice">
 						<input type="radio" name="write" value="quiet" required <?php checked( 'quiet', $write_mode ); ?>>
 						<span>
-							<strong class="slug-sync-choice-title"><?php esc_html_e( 'Quiet update', 'slug-sync' ); ?><span class="slug-sync-badge"><?php esc_html_e( 'Recommended', 'slug-sync' ); ?></span></strong>
-							<span class="slug-sync-choice-help"><?php esc_html_e( 'Best for most sites and large stores. Changes only the URL slug, keeps the existing modified date, and avoids triggering save automations, webhooks, or integration syncs for every item. Redirect protections and reports are still created.', 'slug-sync' ); ?></span>
+							<strong class="slug-sync-choice-title"><?php esc_html_e( 'Quiet update', 'slugsync' ); ?><span class="slug-sync-badge"><?php esc_html_e( 'Recommended', 'slugsync' ); ?></span></strong>
+							<span class="slug-sync-choice-help"><?php esc_html_e( 'Best for most sites and large stores. Changes only the URL slug, keeps the existing modified date, and avoids triggering save automations, webhooks, or integration syncs for every item. Redirect protections and reports are still created.', 'slugsync' ); ?></span>
 						</span>
 					</label>
 					<label class="slug-sync-choice">
 						<input type="radio" name="write" value="hooks">
 						<span>
-							<strong class="slug-sync-choice-title"><?php esc_html_e( 'Standard WordPress update', 'slug-sync' ); ?></strong>
-							<span class="slug-sync-choice-help"><?php esc_html_e( 'Saves every item through WordPress normally. This updates its modified date and runs plugins, webhooks, and automations connected to saving. Choose this only when another integration must react to each slug change; it can be much slower.', 'slug-sync' ); ?></span>
+							<strong class="slug-sync-choice-title"><?php esc_html_e( 'Standard WordPress update', 'slugsync' ); ?></strong>
+							<span class="slug-sync-choice-help"><?php esc_html_e( 'Saves every item through WordPress normally. This updates its modified date and runs plugins, webhooks, and automations connected to saving. Choose this only when another integration must react to each slug change; it can be much slower.', 'slugsync' ); ?></span>
 						</span>
 					</label>
 				</div>
@@ -2827,27 +2827,27 @@ class Slug_Sync {
 			</details>
 
 			<details class="slug-sync-workflow-step" data-slug-sync-step="5">
-				<summary id="slug-sync-scope-heading"><span class="slug-sync-number slug-sync-number--bonus"><?php esc_html_e( 'Bonus', 'slug-sync' ); ?></span><span class="slug-sync-workflow-title"><?php esc_html_e( 'What is included', 'slug-sync' ); ?></span><span class="slug-sync-workflow-hint"><?php esc_html_e( 'Nothing to pick here — the default scope suits most sites', 'slug-sync' ); ?></span></summary>
+				<summary id="slug-sync-scope-heading"><span class="slug-sync-number slug-sync-number--bonus"><?php esc_html_e( 'Bonus', 'slugsync' ); ?></span><span class="slug-sync-workflow-title"><?php esc_html_e( 'What is included', 'slugsync' ); ?></span><span class="slug-sync-workflow-hint"><?php esc_html_e( 'Nothing to pick here — the default scope suits most sites', 'slugsync' ); ?></span></summary>
 				<div class="slug-sync-card slug-sync-workflow-body" role="region" aria-labelledby="slug-sync-scope-heading">
 				<div class="slug-sync-optional-note">
-					<strong><?php esc_html_e( 'Nothing here has to be picked.', 'slug-sync' ); ?></strong>
-					<span><?php esc_html_e( 'Every option below widens the default scope. Leave them all unchecked and continue straight to the button at the end.', 'slug-sync' ); ?></span>
+					<strong><?php esc_html_e( 'Nothing here has to be picked.', 'slugsync' ); ?></strong>
+					<span><?php esc_html_e( 'Every option below widens the default scope. Leave them all unchecked and continue straight to the button at the end.', 'slugsync' ); ?></span>
 				</div>
-				<p><?php esc_html_e( 'By default, only published items whose slug clearly differs from the title are included.', 'slug-sync' ); ?></p>
+				<p><?php esc_html_e( 'By default, only published items whose slug clearly differs from the title are included.', 'slugsync' ); ?></p>
 				<div class="slug-sync-choices">
 					<label class="slug-sync-choice">
 						<input type="checkbox" name="drafts" value="1" <?php checked( $include_drafts ); ?>>
 						<span>
-							<strong class="slug-sync-choice-title"><?php esc_html_e( 'Also include unpublished items', 'slug-sync' ); ?></strong>
-							<span class="slug-sync-choice-help"><?php esc_html_e( 'Includes drafts, pending-review items, and private items. Leave off if you only want to change URLs that visitors can currently access.', 'slug-sync' ); ?></span>
+							<strong class="slug-sync-choice-title"><?php esc_html_e( 'Also include unpublished items', 'slugsync' ); ?></strong>
+							<span class="slug-sync-choice-help"><?php esc_html_e( 'Includes drafts, pending-review items, and private items. Leave off if you only want to change URLs that visitors can currently access.', 'slugsync' ); ?></span>
 						</span>
 					</label>
 					<label class="slug-sync-choice">
 						<input type="checkbox" name="suffixed" value="1" <?php checked( $include_suffixed ); ?>>
 						<span>
-							<strong class="slug-sync-choice-title"><?php esc_html_e( 'Recheck numbered slugs', 'slug-sync' ); ?></strong>
-							<span class="slug-sync-choice-help"><?php esc_html_e( 'Includes slugs that already match the title except for a number. These are skipped by default because the number often marks a duplicate title. WordPress may add a number again when it is needed to keep the URL unique.', 'slug-sync' ); ?></span>
-							<span class="slug-sync-example"><?php esc_html_e( 'Example: blue-cotton-shirt-2', 'slug-sync' ); ?></span>
+							<strong class="slug-sync-choice-title"><?php esc_html_e( 'Recheck numbered slugs', 'slugsync' ); ?></strong>
+							<span class="slug-sync-choice-help"><?php esc_html_e( 'Includes slugs that already match the title except for a number. These are skipped by default because the number often marks a duplicate title. WordPress may add a number again when it is needed to keep the URL unique.', 'slugsync' ); ?></span>
+							<span class="slug-sync-example"><?php esc_html_e( 'Example: blue-cotton-shirt-2', 'slugsync' ); ?></span>
 						</span>
 					</label>
 					<label class="slug-sync-choice">
@@ -2856,11 +2856,11 @@ class Slug_Sync {
 							<strong class="slug-sync-choice-title">
 								<?php
 								/* translators: %d: number of items in one batch. */
-								printf( esc_html__( 'Pause after the first %d items', 'slug-sync' ), (int) $batch_size );
+								printf( esc_html__( 'Pause after the first %d items', 'slugsync' ), (int) $batch_size );
 								?>
-								<span class="slug-sync-badge"><?php esc_html_e( 'Useful for first Apply', 'slug-sync' ); ?></span>
+								<span class="slug-sync-badge"><?php esc_html_e( 'Useful for first Apply', 'slugsync' ); ?></span>
 							</strong>
-							<span class="slug-sync-choice-help"><?php esc_html_e( 'Processes one batch, then pauses so you can inspect the partial report. Resume continues with the next item. Stopping does not undo the first batch.', 'slug-sync' ); ?></span>
+							<span class="slug-sync-choice-help"><?php esc_html_e( 'Processes one batch, then pauses so you can inspect the partial report. Resume continues with the next item. Stopping does not undo the first batch.', 'slugsync' ); ?></span>
 						</span>
 					</label>
 				</div>
@@ -2868,17 +2868,17 @@ class Slug_Sync {
 			</details>
 
 			<div class="slug-sync-safety" id="slug-sync-safety" hidden>
-				<h3><?php esc_html_e( 'Before you apply', 'slug-sync' ); ?></h3>
+				<h3><?php esc_html_e( 'Before you apply', 'slugsync' ); ?></h3>
 				<ul>
-					<li><?php esc_html_e( 'Take a current database backup.', 'slug-sync' ); ?></li>
-					<li><?php esc_html_e( 'Run and review a complete preview first.', 'slug-sync' ); ?></li>
-					<li><?php esc_html_e( 'After Apply finishes, purge page/CDN caches and test several old URLs.', 'slug-sync' ); ?></li>
+					<li><?php esc_html_e( 'Take a current database backup.', 'slugsync' ); ?></li>
+					<li><?php esc_html_e( 'Run and review a complete preview first.', 'slugsync' ); ?></li>
+					<li><?php esc_html_e( 'After Apply finishes, purge page/CDN caches and test several old URLs.', 'slugsync' ); ?></li>
 				</ul>
 			</div>
 
 			<div class="slug-sync-actions">
-				<button class="button button-primary" id="slug-sync-start-button" name="slug_sync_run" value="1"><?php esc_html_e( 'Create preview', 'slug-sync' ); ?></button>
-				<span class="description"><?php esc_html_e( 'Large sites continue automatically in small batches.', 'slug-sync' ); ?></span>
+				<button class="button button-primary" id="slug-sync-start-button" name="slug_sync_run" value="1"><?php esc_html_e( 'Create preview', 'slugsync' ); ?></button>
+				<span class="description"><?php esc_html_e( 'Large sites continue automatically in small batches.', 'slugsync' ); ?></span>
 			</div>
 		</form>
 		<?php
@@ -2898,7 +2898,7 @@ class Slug_Sync {
 
 		if ( ! $run ) {
 			echo '<div class="notice notice-error"><p>' .
-				esc_html__( 'A run could not be started. Resume or stop the active run before trying again.', 'slug-sync' ) .
+				esc_html__( 'A run could not be started. Resume or stop the active run before trying again.', 'slugsync' ) .
 				'</p></div>';
 			return;
 		}
@@ -2906,7 +2906,7 @@ class Slug_Sync {
 		$run_id = sanitize_key( $run['id'] );
 
 		if ( self::run_is_finished( $run ) ) {
-			echo '<div class="notice notice-warning"><p>' . esc_html__( 'This run has already finished.', 'slug-sync' ) . '</p></div>';
+			echo '<div class="notice notice-warning"><p>' . esc_html__( 'This run has already finished.', 'slugsync' ) . '</p></div>';
 			return;
 		}
 
@@ -2914,11 +2914,11 @@ class Slug_Sync {
 
 		if ( ! $active ) {
 			if ( ! self::add_option_once( self::ACTIVE_OPT, $run_id ) ) {
-				echo '<div class="notice notice-error"><p>' . esc_html__( 'Another run became active. Reload this page and try again.', 'slug-sync' ) . '</p></div>';
+				echo '<div class="notice notice-error"><p>' . esc_html__( 'Another run became active. Reload this page and try again.', 'slugsync' ) . '</p></div>';
 				return;
 			}
 		} elseif ( sanitize_key( $active['id'] ) !== $run_id ) {
-			echo '<div class="notice notice-error"><p>' . esc_html__( 'Another run is active. Finish or stop it first.', 'slug-sync' ) . '</p></div>';
+			echo '<div class="notice notice-error"><p>' . esc_html__( 'Another run is active. Finish or stop it first.', 'slugsync' ) . '</p></div>';
 			return;
 		}
 
@@ -2926,7 +2926,7 @@ class Slug_Sync {
 
 		if ( ! $lock_token ) {
 			echo '<div class="notice notice-warning"><p>' .
-				esc_html__( 'Another batch is still processing. Wait a moment, then use Resume.', 'slug-sync' ) .
+				esc_html__( 'Another batch is still processing. Wait a moment, then use Resume.', 'slugsync' ) .
 				'</p></div>';
 			return;
 		}
@@ -2936,7 +2936,7 @@ class Slug_Sync {
 
 		if ( ! $run || self::run_is_finished( $run ) ) {
 			self::release_lock( $lock_token );
-			echo '<div class="notice notice-warning"><p>' . esc_html__( 'This run is no longer available to resume.', 'slug-sync' ) . '</p></div>';
+			echo '<div class="notice notice-warning"><p>' . esc_html__( 'This run is no longer available to resume.', 'slugsync' ) . '</p></div>';
 			return;
 		}
 
@@ -2978,7 +2978,7 @@ class Slug_Sync {
 			self::save_run( $run );
 			self::release_lock( $lock_token );
 			echo '<div class="notice notice-error"><p>' .
-				esc_html__( 'This run cannot resume because one of its report files is missing. Stop it before starting another run.', 'slug-sync' ) .
+				esc_html__( 'This run cannot resume because one of its report files is missing. Stop it before starting another run.', 'slugsync' ) .
 				'</p></div>';
 			return;
 		}
@@ -3020,7 +3020,7 @@ class Slug_Sync {
 			self::save_run( $run );
 			self::release_lock( $lock_token );
 			echo '<div class="notice notice-error"><p>' .
-				esc_html__( 'WordPress could not read the selected content from the database. The run was paused without advancing; fix the database error, then resume.', 'slug-sync' ) .
+				esc_html__( 'WordPress could not read the selected content from the database. The run was paused without advancing; fix the database error, then resume.', 'slugsync' ) .
 				'</p></div>';
 			return;
 		}
@@ -3057,7 +3057,7 @@ class Slug_Sync {
 			self::save_run( $run );
 			self::release_lock( $lock_token );
 			echo '<div class="notice notice-error"><p>' .
-				esc_html__( 'The report files could not be opened. Check that the uploads directory is writable, then resume.', 'slug-sync' ) .
+				esc_html__( 'The report files could not be opened. Check that the uploads directory is writable, then resume.', 'slugsync' ) .
 				'</p></div>';
 			return;
 		}
@@ -3087,7 +3087,7 @@ class Slug_Sync {
 			self::save_run( $run );
 			self::release_lock( $lock_token );
 			echo '<div class="notice notice-error"><p>' .
-				esc_html__( 'The report headers could not be written. The run was paused without changing anything; check available disk space and uploads permissions, then resume.', 'slug-sync' ) .
+				esc_html__( 'The report headers could not be written. The run was paused without changing anything; check available disk space and uploads permissions, then resume.', 'slugsync' ) .
 				'</p></div>';
 			return;
 		}
@@ -3151,7 +3151,7 @@ class Slug_Sync {
 						$planned[5] = $row->post_name;
 						$planned[7] = get_permalink( $post_id );
 						$planned[8] = $planned[8] ? $planned[8] . '; ' : '';
-						$planned[8] .= __( 'slug adjusted during WordPress save', 'slug-sync' );
+						$planned[8] .= __( 'slug adjusted during WordPress save', 'slugsync' );
 
 						if ( empty( $planned[10] ) ) {
 							$planned[10] = 'wordpress_adjustment';
@@ -3163,7 +3163,7 @@ class Slug_Sync {
 						}
 					} else {
 						/* translators: 1: post ID, 2: current slug. */
-						$log[] = sprintf( __( '#%1$d skipped after interruption because its slug is now "%2$s"', 'slug-sync' ), $post_id, $row->post_name );
+						$log[] = sprintf( __( '#%1$d skipped after interruption because its slug is now "%2$s"', 'slugsync' ), $post_id, $row->post_name );
 						$batch_errors++;
 						continue;
 					}
@@ -3258,7 +3258,7 @@ class Slug_Sync {
 
 				if ( true !== $result ) {
 					/* translators: 1: post ID, 2: error message. */
-					$log[] = sprintf( __( '#%1$d failed: %2$s', 'slug-sync' ), $row->ID, $result );
+					$log[] = sprintf( __( '#%1$d failed: %2$s', 'slugsync' ), $row->ID, $result );
 					$batch_errors++;
 					continue;
 				}
@@ -3267,7 +3267,7 @@ class Slug_Sync {
 
 				if ( '' === $actual_slug || $actual_slug === $old_slug ) {
 					/* translators: %d: post ID. */
-					$log[] = sprintf( __( '#%d failed: WordPress did not retain the requested slug.', 'slug-sync' ), $post_id );
+					$log[] = sprintf( __( '#%d failed: WordPress did not retain the requested slug.', 'slugsync' ), $post_id );
 					$batch_errors++;
 					continue;
 				}
@@ -3277,7 +3277,7 @@ class Slug_Sync {
 				if ( $actual_slug !== $new_slug ) {
 					$new_slug = $actual_slug;
 					$note = $note ? $note . '; ' : '';
-					$note .= __( 'slug adjusted during WordPress save', 'slug-sync' );
+					$note .= __( 'slug adjusted during WordPress save', 'slugsync' );
 
 					if ( ! $conflict ) {
 						$conflict = 'wordpress_adjustment';
@@ -3325,7 +3325,7 @@ class Slug_Sync {
 			self::save_run( $run );
 			self::release_lock( $lock_token );
 			echo '<div class="notice notice-error"><p>' .
-				esc_html__( 'A report write failed. The run was paused without advancing its checkpoint; any slug already written is safely recorded in the recovery journal. Check disk space and uploads permissions, then resume.', 'slug-sync' ) .
+				esc_html__( 'A report write failed. The run was paused without advancing its checkpoint; any slug already written is safely recorded in the recovery journal. Check disk space and uploads permissions, then resume.', 'slugsync' ) .
 				'</p></div>';
 			return;
 		}
@@ -3340,7 +3340,7 @@ class Slug_Sync {
 			self::save_run( $run );
 			self::release_lock( $lock_token );
 			echo '<div class="notice notice-error"><p>' .
-				esc_html__( 'The final redirect report could not be verified. The run was paused without advancing its checkpoint; check disk space and uploads permissions, then resume.', 'slug-sync' ) .
+				esc_html__( 'The final redirect report could not be verified. The run was paused without advancing its checkpoint; check disk space and uploads permissions, then resume.', 'slugsync' ) .
 				'</p></div>';
 			return;
 		}
@@ -3370,7 +3370,7 @@ class Slug_Sync {
 		if ( ! self::save_run( $run ) ) {
 			self::release_lock( $lock_token );
 			echo '<div class="notice notice-error"><p>' .
-				esc_html__( 'The batch reports are safe, but WordPress could not save the run checkpoint. The recovery journal was kept; reload the page and resume to reconcile this batch.', 'slug-sync' ) .
+				esc_html__( 'The batch reports are safe, but WordPress could not save the run checkpoint. The recovery journal was kept; reload the page and resume to reconcile this batch.', 'slugsync' ) .
 				'</p></div>';
 			return;
 		}
@@ -3460,27 +3460,27 @@ class Slug_Sync {
 		}
 
 		if ( $finished ) {
-			$heading = $apply ? __( 'Your new URLs are live', 'slug-sync' ) : __( 'Your preview is ready', 'slug-sync' );
+			$heading = $apply ? __( 'Your new URLs are live', 'slugsync' ) : __( 'Your preview is ready', 'slugsync' );
 			$lead    = $apply
-				? __( 'Every selected item now uses its new slug. Both reports are ready to download.', 'slug-sync' )
-				: __( 'Nothing has been changed. The two reports below describe exactly what Apply would do.', 'slug-sync' );
+				? __( 'Every selected item now uses its new slug. Both reports are ready to download.', 'slugsync' )
+				: __( 'Nothing has been changed. The two reports below describe exactly what Apply would do.', 'slugsync' );
 		} elseif ( $paused ) {
-			$heading = __( 'Paused after the first batch', 'slug-sync' );
-			$lead    = __( 'The partial reports are already written. Resume to carry on, or stop to keep only the completed work.', 'slug-sync' );
+			$heading = __( 'Paused after the first batch', 'slugsync' );
+			$lead    = __( 'The partial reports are already written. Resume to carry on, or stop to keep only the completed work.', 'slugsync' );
 		} else {
-			$heading = $apply ? __( 'Rewriting your URLs', 'slug-sync' ) : __( 'Building your new URLs', 'slug-sync' );
+			$heading = $apply ? __( 'Rewriting your URLs', 'slugsync' ) : __( 'Building your new URLs', 'slugsync' );
 			$lead    = $apply
-				? __( 'Saving each new slug and recording the old URL, so visitors and search engines still arrive.', 'slug-sync' )
-				: __( 'Reading every title and working out the slug WordPress would give it. Nothing is being saved.', 'slug-sync' );
+				? __( 'Saving each new slug and recording the old URL, so visitors and search engines still arrive.', 'slugsync' )
+				: __( 'Reading every title and working out the slug WordPress would give it. Nothing is being saved.', 'slugsync' );
 		}
 		?>
 		<div class="slug-sync-modal" id="slug-sync-run-modal" data-state="<?php echo esc_attr( $state ); ?>" role="dialog" aria-labelledby="slug-sync-modal-title" aria-describedby="slug-sync-modal-lead">
 			<div class="slug-sync-modal-backdrop"></div>
 			<div class="slug-sync-card slug-sync-modal-card" id="slug-sync-modal-card" tabindex="-1">
 				<?php if ( $working ) : ?>
-					<span class="slug-sync-modal-badge"><span class="slug-sync-modal-pulse" aria-hidden="true"></span><?php echo esc_html( $apply ? __( 'Apply in progress', 'slug-sync' ) : __( 'Preview in progress', 'slug-sync' ) ); ?></span>
+					<span class="slug-sync-modal-badge"><span class="slug-sync-modal-pulse" aria-hidden="true"></span><?php echo esc_html( $apply ? __( 'Apply in progress', 'slugsync' ) : __( 'Preview in progress', 'slugsync' ) ); ?></span>
 				<?php else : ?>
-					<a class="slug-sync-modal-close" id="slug-sync-modal-close" href="<?php echo esc_url( $back_url ); ?>" aria-label="<?php esc_attr_e( 'Close this run summary', 'slug-sync' ); ?>"><span aria-hidden="true">&times;</span></a>
+					<a class="slug-sync-modal-close" id="slug-sync-modal-close" href="<?php echo esc_url( $back_url ); ?>" aria-label="<?php esc_attr_e( 'Close this run summary', 'slugsync' ); ?>"><span aria-hidden="true">&times;</span></a>
 				<?php endif; ?>
 
 				<h2 id="slug-sync-modal-title"><?php echo esc_html( $heading ); ?></h2>
@@ -3489,11 +3489,11 @@ class Slug_Sync {
 				<?php self::progress_bar( $done, $total, $working ); ?>
 
 				<p class="slug-sync-modal-meta">
-					<span><strong><?php esc_html_e( 'Slug building:', 'slug-sync' ); ?></strong> <?php echo esc_html( self::transformation_label( $run ) ); ?></span>
+					<span><strong><?php esc_html_e( 'Slug building:', 'slugsync' ); ?></strong> <?php echo esc_html( self::transformation_label( $run ) ); ?></span>
 					<?php if ( $apply ) : ?>
-						<span><strong><?php esc_html_e( 'Saving method:', 'slug-sync' ); ?></strong> <?php echo esc_html( empty( $args['quiet'] ) ? __( 'Standard WordPress update', 'slug-sync' ) : __( 'Quiet update', 'slug-sync' ) ); ?></span>
+						<span><strong><?php esc_html_e( 'Saving method:', 'slugsync' ); ?></strong> <?php echo esc_html( empty( $args['quiet'] ) ? __( 'Standard WordPress update', 'slugsync' ) : __( 'Quiet update', 'slugsync' ) ); ?></span>
 					<?php else : ?>
-						<span><?php esc_html_e( 'Preview only. No slugs or URLs are being changed.', 'slug-sync' ); ?></span>
+						<span><?php esc_html_e( 'Preview only. No slugs or URLs are being changed.', 'slugsync' ); ?></span>
 					<?php endif; ?>
 				</p>
 
@@ -3507,13 +3507,13 @@ class Slug_Sync {
 
 				<div class="slug-sync-modal-actions">
 					<?php if ( $finished ) : ?>
-						<a class="button" href="<?php echo esc_url( $back_url ); ?>"><?php echo esc_html( $apply ? __( 'Back to Slug Sync', 'slug-sync' ) : __( 'Back to the setup form', 'slug-sync' ) ); ?></a>
-						<span class="description"><?php esc_html_e( 'The reports stay downloadable from Previous runs.', 'slug-sync' ); ?></span>
+						<a class="button" href="<?php echo esc_url( $back_url ); ?>"><?php echo esc_html( $apply ? __( 'Back to SlugSync', 'slugsync' ) : __( 'Back to the setup form', 'slugsync' ) ); ?></a>
+						<span class="description"><?php esc_html_e( 'The reports stay downloadable from Previous runs.', 'slugsync' ); ?></span>
 					<?php elseif ( $paused ) : ?>
 						<?php self::run_controls( $run ); ?>
 					<?php else : ?>
 						<?php self::run_controls( $run, true ); ?>
-						<span class="description"><?php esc_html_e( 'The next batch starts automatically. You can leave this page and resume later.', 'slug-sync' ); ?></span>
+						<span class="description"><?php esc_html_e( 'The next batch starts automatically. You can leave this page and resume later.', 'slugsync' ); ?></span>
 					<?php endif; ?>
 				</div>
 			</div>
@@ -3537,27 +3537,27 @@ class Slug_Sync {
 		}
 		?>
 		<div class="slug-sync-modal-downloads">
-			<h3><?php echo esc_html( $finished ? __( 'Your two reports', 'slug-sync' ) : __( 'The partial reports so far', 'slug-sync' ) ); ?></h3>
+			<h3><?php echo esc_html( $finished ? __( 'Your two reports', 'slugsync' ) : __( 'The partial reports so far', 'slugsync' ) ); ?></h3>
 			<div class="slug-sync-modal-files">
 				<?php if ( is_file( $changes ) ) : ?>
 					<div class="slug-sync-modal-file">
-						<strong><?php esc_html_e( 'Changes report', 'slug-sync' ); ?></strong>
-						<span><?php esc_html_e( 'Every item with its old URL, its new URL and a note explaining anything unusual. This is the one to review.', 'slug-sync' ); ?></span>
-						<a class="button slug-sync-report-button slug-sync-report-button--changes" href="<?php echo esc_url( self::report_download_url( 'changes', $run_id ) ); ?>"><?php esc_html_e( 'Download changes CSV', 'slug-sync' ); ?></a>
+						<strong><?php esc_html_e( 'Changes report', 'slugsync' ); ?></strong>
+						<span><?php esc_html_e( 'Every item with its old URL, its new URL and a note explaining anything unusual. This is the one to review.', 'slugsync' ); ?></span>
+						<a class="button slug-sync-report-button slug-sync-report-button--changes" href="<?php echo esc_url( self::report_download_url( 'changes', $run_id ) ); ?>"><?php esc_html_e( 'Download changes CSV', 'slugsync' ); ?></a>
 					</div>
 				<?php endif; ?>
 				<?php if ( is_file( $redirects ) ) : ?>
 					<div class="slug-sync-modal-file">
-						<strong><?php esc_html_e( 'Redirect map', 'slug-sync' ); ?></strong>
-						<span><?php esc_html_e( 'Two columns, old URL and new URL, ready to import into Redirection or any other redirect plugin. This is the one to keep.', 'slug-sync' ); ?></span>
-						<a class="button button-primary slug-sync-report-button slug-sync-report-button--redirects" href="<?php echo esc_url( self::report_download_url( 'redirects', $run_id ) ); ?>"><?php esc_html_e( 'Download redirect CSV', 'slug-sync' ); ?></a>
+						<strong><?php esc_html_e( 'Redirect map', 'slugsync' ); ?></strong>
+						<span><?php esc_html_e( 'Two columns, old URL and new URL, ready to import into Redirection or any other redirect plugin. This is the one to keep.', 'slugsync' ); ?></span>
+						<a class="button button-primary slug-sync-report-button slug-sync-report-button--redirects" href="<?php echo esc_url( self::report_download_url( 'redirects', $run_id ) ); ?>"><?php esc_html_e( 'Download redirect CSV', 'slugsync' ); ?></a>
 					</div>
 				<?php endif; ?>
 			</div>
 			<?php if ( $post_type && is_post_type_hierarchical( $post_type ) ) : ?>
-				<p class="slug-sync-modal-warning"><?php esc_html_e( 'This content type nests inside a parent, so WordPress will not redirect its old URLs by itself. Import the redirect map into a redirect plugin. Anything sitting beneath an item whose slug changed also has a new URL, and those are not listed in either report.', 'slug-sync' ); ?></p>
+				<p class="slug-sync-modal-warning"><?php esc_html_e( 'This content type nests inside a parent, so WordPress will not redirect its old URLs by itself. Import the redirect map into a redirect plugin. Anything sitting beneath an item whose slug changed also has a new URL, and those are not listed in either report.', 'slugsync' ); ?></p>
 			<?php endif; ?>
-			<p class="slug-sync-modal-note"><?php esc_html_e( 'Both files stay available from Previous runs at the foot of this screen.', 'slug-sync' ); ?></p>
+			<p class="slug-sync-modal-note"><?php esc_html_e( 'Both files stay available from Previous runs at the foot of this screen.', 'slugsync' ); ?></p>
 		</div>
 		<?php
 	}
@@ -3573,29 +3573,29 @@ class Slug_Sync {
 	 */
 	private static function run_modal_reading( $done, $run_id = '' ) {
 		$items = array(
-			array( 'kind' => 'free', 'icon' => 'link',   'text' => __( 'Your old URLs are recorded as the run goes, not at the end', 'slug-sync' ) ),
-			array( 'kind' => 'free', 'icon' => 'shield', 'text' => __( 'WordPress redirects old post and product links by itself', 'slug-sync' ) ),
+			array( 'kind' => 'free', 'icon' => 'link',   'text' => __( 'Your old URLs are recorded as the run goes, not at the end', 'slugsync' ) ),
+			array( 'kind' => 'free', 'icon' => 'shield', 'text' => __( 'WordPress redirects old post and product links by itself', 'slugsync' ) ),
 			array(
 				'kind' => 'free',
 				'icon' => 'undo',
 				/* translators: %d: number of runs kept in the history. */
-				'text' => sprintf( __( 'Any applied run can be undone, for the last %d runs', 'slug-sync' ), self::MAX_RUNS ),
+				'text' => sprintf( __( 'Any applied run can be undone, for the last %d runs', 'slugsync' ), self::MAX_RUNS ),
 			),
-			array( 'kind' => 'free', 'icon' => 'clock',  'text' => __( 'Closing this page pauses the run. It never loses it', 'slug-sync' ) ),
-			array( 'kind' => 'free', 'icon' => 'eye',    'text' => __( 'Every change is shown old to new before anything is saved', 'slug-sync' ) ),
-			array( 'kind' => 'free', 'icon' => 'layers', 'text' => __( 'Duplicate URLs are handled for you, so nothing collides', 'slug-sync' ) ),
-			array( 'kind' => 'free', 'icon' => 'off',    'text' => __( 'Quiet update changes the URL without waking connected tools', 'slug-sync' ) ),
-			array( 'kind' => 'free', 'icon' => 'code',   'text' => __( 'Cyrillic and Greek titles can become readable Latin slugs', 'slug-sync' ) ),
-			array( 'kind' => 'free', 'icon' => 'box',    'text' => __( 'A product\'s exact SKU can be left out of its URL, or added to it', 'slug-sync' ) ),
-			array( 'kind' => 'free', 'icon' => 'lock',   'text' => __( 'Nothing is tracked, and nothing ever leaves your site', 'slug-sync' ) ),
-			array( 'kind' => 'pro',  'icon' => 'wrench', 'text' => __( 'Pro removes unassigned codes, filler words and over-long names', 'slug-sync' ) ),
-			array( 'kind' => 'pro',  'icon' => 'code',   'text' => __( 'Pro reads Chinese and more, not just Cyrillic and Greek', 'slug-sync' ) ),
-			array( 'kind' => 'pro',  'icon' => 'box',    'text' => __( 'Pro builds product URLs from colour, size, material or SKU', 'slug-sync' ) ),
-			array( 'kind' => 'pro',  'icon' => 'link',   'text' => __( 'Pro puts assigned categories and tags into product URLs', 'slug-sync' ) ),
-			array( 'kind' => 'pro',  'icon' => 'tag',    'text' => __( 'Pro adds categories and tags from words in product names', 'slug-sync' ) ),
-			array( 'kind' => 'pro',  'icon' => 'layers', 'text' => __( 'Pro maps name text to attribute values, leaving names alone', 'slug-sync' ) ),
-			array( 'kind' => 'pro',  'icon' => 'eye',    'text' => __( 'Pro renames term URLs, with redirects and a seven-day 404 watch', 'slug-sync' ) ),
-			array( 'kind' => 'pro',  'icon' => 'off',    'text' => __( 'Pro clears WP Rocket, LiteSpeed, W3TC and Cloudflare caches', 'slug-sync' ) ),
+			array( 'kind' => 'free', 'icon' => 'clock',  'text' => __( 'Closing this page pauses the run. It never loses it', 'slugsync' ) ),
+			array( 'kind' => 'free', 'icon' => 'eye',    'text' => __( 'Every change is shown old to new before anything is saved', 'slugsync' ) ),
+			array( 'kind' => 'free', 'icon' => 'layers', 'text' => __( 'Duplicate URLs are handled for you, so nothing collides', 'slugsync' ) ),
+			array( 'kind' => 'free', 'icon' => 'off',    'text' => __( 'Quiet update changes the URL without waking connected tools', 'slugsync' ) ),
+			array( 'kind' => 'free', 'icon' => 'code',   'text' => __( 'Cyrillic and Greek titles can become readable Latin slugs', 'slugsync' ) ),
+			array( 'kind' => 'free', 'icon' => 'box',    'text' => __( 'A product\'s exact SKU can be left out of its URL, or added to it', 'slugsync' ) ),
+			array( 'kind' => 'free', 'icon' => 'lock',   'text' => __( 'Nothing is tracked, and nothing ever leaves your site', 'slugsync' ) ),
+			array( 'kind' => 'pro',  'icon' => 'wrench', 'text' => __( 'Pro removes unassigned codes, filler words and over-long names', 'slugsync' ) ),
+			array( 'kind' => 'pro',  'icon' => 'code',   'text' => __( 'Pro reads Chinese and more, not just Cyrillic and Greek', 'slugsync' ) ),
+			array( 'kind' => 'pro',  'icon' => 'box',    'text' => __( 'Pro builds product URLs from colour, size, material or SKU', 'slugsync' ) ),
+			array( 'kind' => 'pro',  'icon' => 'link',   'text' => __( 'Pro puts assigned categories and tags into product URLs', 'slugsync' ) ),
+			array( 'kind' => 'pro',  'icon' => 'tag',    'text' => __( 'Pro adds categories and tags from words in product names', 'slugsync' ) ),
+			array( 'kind' => 'pro',  'icon' => 'layers', 'text' => __( 'Pro maps name text to attribute values, leaving names alone', 'slugsync' ) ),
+			array( 'kind' => 'pro',  'icon' => 'eye',    'text' => __( 'Pro renames term URLs, with redirects and a seven-day 404 watch', 'slugsync' ) ),
+			array( 'kind' => 'pro',  'icon' => 'off',    'text' => __( 'Pro clears WP Rocket, LiteSpeed, W3TC and Cloudflare caches', 'slugsync' ) ),
 		);
 
 		if ( has_filter( 'slug_sync_source_title' ) ) {
@@ -3678,26 +3678,26 @@ class Slug_Sync {
 
 		if ( $context && $context['code'] ) {
 			/* translators: %d: number of titles. */
-			$lines[] = sprintf( _n( '%d title contains a product code or SKU.', '%d titles contain a product code or SKU.', $context['code'], 'slug-sync' ), $context['code'] );
+			$lines[] = sprintf( _n( '%d title contains a product code or SKU.', '%d titles contain a product code or SKU.', $context['code'], 'slugsync' ), $context['code'] );
 		}
 		if ( $context && $context['stopword'] ) {
 			/* translators: %d: number of titles. */
-			$lines[] = sprintf( _n( '%d title contains common filler words.', '%d titles contain common filler words.', $context['stopword'], 'slug-sync' ), $context['stopword'] );
+			$lines[] = sprintf( _n( '%d title contains common filler words.', '%d titles contain common filler words.', $context['stopword'], 'slugsync' ), $context['stopword'] );
 		}
 
 		echo '<div class="slug-sync-card">';
-		echo '<p class="slug-sync-pro-status"><strong>' . esc_html__( 'Built and in final release checks.', 'slug-sync' ) . '</strong> ';
+		echo '<p class="slug-sync-pro-status"><strong>' . esc_html__( 'Built and in final release checks.', 'slugsync' ) . '</strong> ';
 		printf(
 			/* translators: %s: Pro price, for example $79.99. */
-			esc_html__( '%s once at launch, with no yearly renewal.', 'slug-sync' ),
+			esc_html__( '%s once at launch, with no yearly renewal.', 'slugsync' ),
 			esc_html( self::PRO_PRICE )
 		);
 		echo '</p>';
-		echo '<span class="slug-sync-eyebrow">' . esc_html__( 'Separate paid add-on', 'slug-sync' ) . '</span>';
-		echo '<h2>' . esc_html__( 'What Slug Sync Pro adds', 'slug-sync' ) . '</h2>';
+		echo '<span class="slug-sync-eyebrow">' . esc_html__( 'Separate paid add-on', 'slugsync' ) . '</span>';
+		echo '<h2>' . esc_html__( 'What SlugSync Pro adds', 'slugsync' ) . '</h2>';
 
 		if ( $lines ) {
-			echo '<p><strong>' . esc_html__( 'What this preview noticed', 'slug-sync' ) . '</strong></p><ul>';
+			echo '<p><strong>' . esc_html__( 'What this preview noticed', 'slugsync' ) . '</strong></p><ul>';
 
 			foreach ( $lines as $line ) {
 				echo '<li>' . esc_html( $line ) . '</li>';
@@ -3708,8 +3708,8 @@ class Slug_Sync {
 
 		echo '<p>' . esc_html(
 			$context
-				? __( 'Free completed this URL preview. The Pro workflows below are the ones Free does not already cover; nothing included in Free is moved or limited.', 'slug-sync' )
-				: __( 'Slug Sync Free is complete on its own and has no limits. The Pro workflows below are the ones Free does not cover; nothing included in Free is moved or limited.', 'slug-sync' )
+				? __( 'Free completed this URL preview. The Pro workflows below are the ones Free does not already cover; nothing included in Free is moved or limited.', 'slugsync' )
+				: __( 'SlugSync Free is complete on its own and has no limits. The Pro workflows below are the ones Free does not cover; nothing included in Free is moved or limited.', 'slugsync' )
 		) . '</p>';
 		self::pro_feature_slider();
 
@@ -3721,10 +3721,10 @@ class Slug_Sync {
 		 */
 		echo '<div class="slug-sync-pro-footer">';
 		echo '<a class="button button-primary slug-sync-pro-cta" href="' . esc_url( 'https://slugsync.com/#gap' ) . '" target="_blank" rel="noopener noreferrer">' .
-			esc_html__( 'See all Pro features', 'slug-sync' ) .
+			esc_html__( 'See all Pro features', 'slugsync' ) .
 			'</a>';
 		echo '<span class="description">' .
-			esc_html__( 'Opens slugsync.com, where each workflow is shown in full: the screens it is set up on, and the URLs it produces.', 'slug-sync' ) .
+			esc_html__( 'Opens slugsync.com, where each workflow is shown in full: the screens it is set up on, and the URLs it produces.', 'slugsync' ) .
 			'</span>';
 		echo '</div></div>';
 	}
@@ -3769,70 +3769,70 @@ class Slug_Sync {
 		$features = array(
 			array(
 				'icon'    => 'box',
-				'title'   => __( 'Create URLs from product details', 'slug-sync' ),
-				'body'    => __( 'Choose details such as colour, size, material, weight or SKU, put them in any order and preview the finished address.', 'slug-sync' ),
+				'title'   => __( 'Create URLs from product details', 'slugsync' ),
+				'body'    => __( 'Choose details such as colour, size, material, weight or SKU, put them in any order and preview the finished address.', 'slugsync' ),
 				'example' => '{title} {pa_colour} {pa_size}',
 				'result'  => '/product/cotton-shirt-black-large/',
 			),
 			array(
 				'icon'    => 'link',
-				'title'   => __( 'Use categories and tags in product URLs', 'slug-sync' ),
-				'body'    => __( 'Add assigned product categories and tags to the same URL template as the name, attributes, SKU, weight or dimensions.', 'slug-sync' ),
+				'title'   => __( 'Use categories and tags in product URLs', 'slugsync' ),
+				'body'    => __( 'Add assigned product categories and tags to the same URL template as the name, attributes, SKU, weight or dimensions.', 'slugsync' ),
 				'example' => '{title} {product_cat} {product_tag}',
 				'result'  => '/product/wh-1000xm5-headphones-sony-wireless/',
 			),
 			array(
 				'icon'    => 'tag',
-				'title'   => __( 'Add categories and tags from product names', 'slug-sync' ),
-				'body'    => __( 'Use exact word or phrase rules to organise matching products without removing existing categories or tags.', 'slug-sync' ),
-				'example' => __( 'Sony WH-1000XM5 Headphones', 'slug-sync' ),
-				'result'  => __( 'Sony tag · Headphones category', 'slug-sync' ),
+				'title'   => __( 'Add categories and tags from product names', 'slugsync' ),
+				'body'    => __( 'Use exact word or phrase rules to organise matching products without removing existing categories or tags.', 'slugsync' ),
+				'example' => __( 'Sony WH-1000XM5 Headphones', 'slugsync' ),
+				'result'  => __( 'Sony tag · Headphones category', 'slugsync' ),
 			),
 			array(
 				'icon'    => 'layers',
-				'title'   => __( 'Add attributes and map name text to values', 'slug-sync' ),
-				'body'    => __( 'Choose the text to find, where to save it and the value to add. Existing values and visible names stay unchanged.', 'slug-sync' ),
-				'example' => __( 'Sony 55-inch TV', 'slug-sync' ),
-				'result'  => __( 'Brand: Sony · Category: Televisions', 'slug-sync' ),
+				'title'   => __( 'Add attributes and map name text to values', 'slugsync' ),
+				'body'    => __( 'Choose the text to find, where to save it and the value to add. Existing values and visible names stay unchanged.', 'slugsync' ),
+				'example' => __( 'Sony 55-inch TV', 'slugsync' ),
+				'result'  => __( 'Brand: Sony · Category: Televisions', 'slugsync' ),
 			),
 			array(
 				'icon'    => 'layers',
-				'title'   => __( 'Rename category, tag and attribute URLs safely', 'slug-sync' ),
-				'body'    => __( 'Preview and update term addresses in batches with saved progress, downloadable reports and Undo.', 'slug-sync' ),
+				'title'   => __( 'Rename category, tag and attribute URLs safely', 'slugsync' ),
+				'body'    => __( 'Preview and update term addresses in batches with saved progress, downloadable reports and Undo.', 'slugsync' ),
 				'example' => '/category/winter-boots/',
 				'result'  => '/category/boots/',
 			),
 			array(
 				'icon'    => 'link',
-				'title'   => __( 'Redirect direct old category and tag links', 'slug-sync' ),
-				'body'    => __( 'Remember retired term addresses and redirect direct old links that WordPress reports as missing.', 'slug-sync' ),
+				'title'   => __( 'Redirect direct old category and tag links', 'slugsync' ),
+				'body'    => __( 'Remember retired term addresses and redirect direct old links that WordPress reports as missing.', 'slugsync' ),
 				'example' => '/category/winter-boots/',
-				'result'  => __( 'Permanent redirect', 'slug-sync' ),
+				'result'  => __( 'Permanent redirect', 'slugsync' ),
 			),
 			array(
 				'icon'    => 'off',
-				'title'   => __( 'Clear saved pages after term changes', 'slug-sync' ),
-				'body'    => __( 'Clear supported WordPress page caches and, when connected, only the changed Cloudflare addresses.', 'slug-sync' ),
-				'example' => __( 'WP Rocket · LiteSpeed · W3TC', 'slug-sync' ),
-				'result'  => __( 'Cloudflare: changed URLs only', 'slug-sync' ),
+				'title'   => __( 'Clear saved pages after term changes', 'slugsync' ),
+				'body'    => __( 'Clear supported WordPress page caches and, when connected, only the changed Cloudflare addresses.', 'slugsync' ),
+				'example' => __( 'WP Rocket · LiteSpeed · W3TC', 'slugsync' ),
+				'result'  => __( 'Cloudflare: changed URLs only', 'slugsync' ),
 			),
 			array(
 				'icon'    => 'eye',
-				'title'   => __( 'Watch changed term links for 404 errors', 'slug-sync' ),
-				'body'    => __( 'For seven days, record a 404 when visitors reach one of up to 1,000 watched paths from the latest term update.', 'slug-sync' ),
+				'title'   => __( 'Watch changed term links for 404 errors', 'slugsync' ),
+				'body'    => __( 'For seven days, record a 404 when visitors reach one of up to 1,000 watched paths from the latest term update.', 'slugsync' ),
 				'example' => '/category/winter-boots/',
-				'result'  => __( 'Seven-day 404 watch', 'slug-sync' ),
+				'result'  => __( 'Seven-day 404 watch', 'slugsync' ),
 			),
 		);
 		$total = count( $features );
 		?>
 		<div class="slug-sync-pro-slider">
-			<ul class="slug-sync-pro-grid" id="slug-sync-pro-slider" role="region" aria-roledescription="carousel" aria-label="<?php esc_attr_e( 'Slug Sync Pro features', 'slug-sync' ); ?>" tabindex="0">
+			<ul class="slug-sync-pro-grid" id="slug-sync-pro-slider" role="region" aria-roledescription="carousel" aria-label="<?php esc_attr_e( 'SlugSync Pro features', 'slugsync' ); ?>" tabindex="0">
 				<?php foreach ( $features as $index => $feature ) : ?>
 					<?php
 					$feature_position = sprintf(
 						/* translators: 1: current feature number, 2: total number of features. */
-						__( '%1$d of %2$d', 'slug-sync' ),
+						__( '%1$d of %2$d', 'slugsync' ),
 						$index + 1,
 						$total
 					);
@@ -3845,10 +3845,10 @@ class Slug_Sync {
 					</li>
 				<?php endforeach; ?>
 			</ul>
-			<div class="slug-sync-pro-slider-controls" aria-label="<?php esc_attr_e( 'Pro feature slider controls', 'slug-sync' ); ?>">
-				<button class="button slug-sync-pro-slider-button slug-sync-pro-slider-prev" id="slug-sync-pro-prev" type="button" aria-label="<?php esc_attr_e( 'Previous Pro features', 'slug-sync' ); ?>" aria-controls="slug-sync-pro-slider" disabled><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3 10h13M11.5 5.5L17 10l-5.5 4.5"/></svg></button>
-				<span class="slug-sync-pro-slider-count" aria-live="polite"><span id="slug-sync-pro-current">1–4</span> <?php esc_html_e( 'of', 'slug-sync' ); ?> <span id="slug-sync-pro-total"><?php echo absint( $total ); ?></span></span>
-				<button class="button slug-sync-pro-slider-button" id="slug-sync-pro-next" type="button" aria-label="<?php esc_attr_e( 'Next Pro features', 'slug-sync' ); ?>" aria-controls="slug-sync-pro-slider"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3 10h13M11.5 5.5L17 10l-5.5 4.5"/></svg></button>
+			<div class="slug-sync-pro-slider-controls" aria-label="<?php esc_attr_e( 'Pro feature slider controls', 'slugsync' ); ?>">
+				<button class="button slug-sync-pro-slider-button slug-sync-pro-slider-prev" id="slug-sync-pro-prev" type="button" aria-label="<?php esc_attr_e( 'Previous Pro features', 'slugsync' ); ?>" aria-controls="slug-sync-pro-slider" disabled><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3 10h13M11.5 5.5L17 10l-5.5 4.5"/></svg></button>
+				<span class="slug-sync-pro-slider-count" aria-live="polite"><span id="slug-sync-pro-current">1–4</span> <?php esc_html_e( 'of', 'slugsync' ); ?> <span id="slug-sync-pro-total"><?php echo absint( $total ); ?></span></span>
+				<button class="button slug-sync-pro-slider-button" id="slug-sync-pro-next" type="button" aria-label="<?php esc_attr_e( 'Next Pro features', 'slugsync' ); ?>" aria-controls="slug-sync-pro-slider"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3 10h13M11.5 5.5L17 10l-5.5 4.5"/></svg></button>
 			</div>
 		</div>
 		<?php
@@ -3966,13 +3966,13 @@ class Slug_Sync {
 
 				if ( (string) $current_post->post_name !== $row[5] ) {
 					if ( $quiet ) {
-						continue; // A later edit, not Slug Sync's direct write.
+						continue; // A later edit, not SlugSync's direct write.
 					}
 
 					$row[5] = (string) $current_post->post_name;
 					$row[7] = get_permalink( $post_id );
 					$row[8] = $row[8] ? $row[8] . '; ' : '';
-					$row[8] .= __( 'slug adjusted during WordPress save', 'slug-sync' );
+					$row[8] .= __( 'slug adjusted during WordPress save', 'slugsync' );
 
 					if ( empty( $row[10] ) ) {
 						$row[10] = 'wordpress_adjustment';
@@ -4021,7 +4021,7 @@ class Slug_Sync {
 		$run    = self::get_run( $run_id );
 
 		if ( ! $run || self::run_is_finished( $run ) ) {
-			echo '<div class="notice notice-warning"><p>' . esc_html__( 'This run is not available to stop.', 'slug-sync' ) . '</p></div>';
+			echo '<div class="notice notice-warning"><p>' . esc_html__( 'This run is not available to stop.', 'slugsync' ) . '</p></div>';
 			return;
 		}
 
@@ -4029,7 +4029,7 @@ class Slug_Sync {
 
 		if ( ! $lock_token ) {
 			echo '<div class="notice notice-warning"><p>' .
-				esc_html__( 'A batch is still processing. Wait for it to finish before stopping the run.', 'slug-sync' ) .
+				esc_html__( 'A batch is still processing. Wait for it to finish before stopping the run.', 'slugsync' ) .
 				'</p></div>';
 			return;
 		}
@@ -4040,7 +4040,7 @@ class Slug_Sync {
 			if ( ! self::reconcile_journal( $run ) ) {
 				self::release_lock( $lock_token );
 				echo '<div class="notice notice-error"><p>' .
-					esc_html__( 'The recovery journal could not be merged into the reports, so the run was not stopped. Check disk space and uploads permissions, then resume or try stopping again.', 'slug-sync' ) .
+					esc_html__( 'The recovery journal could not be merged into the reports, so the run was not stopped. Check disk space and uploads permissions, then resume or try stopping again.', 'slugsync' ) .
 					'</p></div>';
 				return;
 			}
@@ -4052,7 +4052,7 @@ class Slug_Sync {
 			if ( ! self::save_run( $run ) ) {
 				self::release_lock( $lock_token );
 				echo '<div class="notice notice-error"><p>' .
-					esc_html__( 'The reports are safe, but WordPress could not save the stopped status. Reload the page and try stopping the run again.', 'slug-sync' ) .
+					esc_html__( 'The reports are safe, but WordPress could not save the stopped status. Reload the page and try stopping the run again.', 'slugsync' ) .
 					'</p></div>';
 				return;
 			}
@@ -4063,7 +4063,7 @@ class Slug_Sync {
 
 		self::release_lock( $lock_token );
 		echo '<div class="notice notice-success"><p>' .
-			esc_html__( 'Run stopped. Work already completed was kept, and the partial reports remain available under Previous runs.', 'slug-sync' ) .
+			esc_html__( 'Run stopped. Work already completed was kept, and the partial reports remain available under Previous runs.', 'slugsync' ) .
 			'</p></div>';
 	}
 
@@ -4080,22 +4080,22 @@ class Slug_Sync {
 		$run    = $run_id ? self::get_run( $run_id ) : null;
 
 		if ( $run_id && ( ! $run || ! isset( $run['mode'] ) || 'apply' !== $run['mode'] ) ) {
-			echo '<div class="notice notice-error"><p>' . esc_html__( 'The selected apply run is not available.', 'slug-sync' ) . '</p></div>';
+			echo '<div class="notice notice-error"><p>' . esc_html__( 'The selected apply run is not available.', 'slugsync' ) . '</p></div>';
 			return;
 		}
 
 		if ( $run && ! self::run_is_finished( $run ) ) {
-			echo '<div class="notice notice-warning"><p>' . esc_html__( 'Stop the active run before undoing its changes.', 'slug-sync' ) . '</p></div>';
+			echo '<div class="notice notice-warning"><p>' . esc_html__( 'Stop the active run before undoing its changes.', 'slugsync' ) . '</p></div>';
 			return;
 		}
 
 		if ( $run && isset( $run['status'] ) && 'rolled_back' === $run['status'] ) {
-			echo '<div class="notice notice-warning"><p>' . esc_html__( 'This run has already been undone.', 'slug-sync' ) . '</p></div>';
+			echo '<div class="notice notice-warning"><p>' . esc_html__( 'This run has already been undone.', 'slugsync' ) . '</p></div>';
 			return;
 		}
 
 		if ( self::active_run() ) {
-			echo '<div class="notice notice-warning"><p>' . esc_html__( 'Finish or stop the active run before undoing another run.', 'slug-sync' ) . '</p></div>';
+			echo '<div class="notice notice-warning"><p>' . esc_html__( 'Finish or stop the active run before undoing another run.', 'slugsync' ) . '</p></div>';
 			return;
 		}
 
@@ -4103,7 +4103,7 @@ class Slug_Sync {
 
 		if ( ! file_exists( $file ) ) {
 			echo '<div class="notice notice-error"><p>' .
-				esc_html__( 'No changes report was found for this undo.', 'slug-sync' ) .
+				esc_html__( 'No changes report was found for this undo.', 'slugsync' ) .
 				'</p></div>';
 			return;
 		}
@@ -4111,7 +4111,7 @@ class Slug_Sync {
 		$lock_token = self::acquire_lock( 'rollback-' . ( $run_id ? $run_id : 'legacy' ) );
 
 		if ( ! $lock_token ) {
-			echo '<div class="notice notice-warning"><p>' . esc_html__( 'Another Slug Sync operation is still running. Try again shortly.', 'slug-sync' ) . '</p></div>';
+			echo '<div class="notice notice-warning"><p>' . esc_html__( 'Another SlugSync operation is still running. Try again shortly.', 'slugsync' ) . '</p></div>';
 			return;
 		}
 
@@ -4120,7 +4120,7 @@ class Slug_Sync {
 		if ( ! $handle ) {
 			self::release_lock( $lock_token );
 			echo '<div class="notice notice-error"><p>' .
-				esc_html__( 'The report could not be read.', 'slug-sync' ) .
+				esc_html__( 'The report could not be read.', 'slugsync' ) .
 				'</p></div>';
 			return;
 		}
@@ -4164,7 +4164,7 @@ class Slug_Sync {
 			if ( $current->post_name !== $new_slug ) {
 				$skipped++;
 				/* translators: 1: post ID, 2: current slug, 3: expected slug. */
-				$log[] = sprintf( __( '#%1$d skipped, slug is now "%2$s" rather than "%3$s"', 'slug-sync' ), $post_id, $current->post_name, $new_slug );
+				$log[] = sprintf( __( '#%1$d skipped, slug is now "%2$s" rather than "%3$s"', 'slugsync' ), $post_id, $current->post_name, $new_slug );
 				continue;
 			}
 
@@ -4179,7 +4179,7 @@ class Slug_Sync {
 			if ( $safe_old_slug !== $old_slug ) {
 				$skipped++;
 				/* translators: 1: post ID, 2: old slug, 3: slug WordPress would use instead. */
-				$log[] = sprintf( __( '#%1$d skipped, the old slug "%2$s" is now in use (WordPress would choose "%3$s")', 'slug-sync' ), $post_id, $old_slug, $safe_old_slug );
+				$log[] = sprintf( __( '#%1$d skipped, the old slug "%2$s" is now in use (WordPress would choose "%3$s")', 'slugsync' ), $post_id, $old_slug, $safe_old_slug );
 				continue;
 			}
 
@@ -4191,7 +4191,7 @@ class Slug_Sync {
 			} else {
 				$failed++;
 				/* translators: 1: post ID, 2: error message. */
-				$log[] = sprintf( __( '#%1$d failed: %2$s', 'slug-sync' ), $post_id, $result );
+				$log[] = sprintf( __( '#%1$d failed: %2$s', 'slugsync' ), $post_id, $result );
 			}
 		}
 
@@ -4211,7 +4211,7 @@ class Slug_Sync {
 
 			if ( ! self::save_run( $run ) ) {
 				$failed++;
-				$log[] = __( 'The slugs were processed, but WordPress could not save the Undo checkpoint. Run Undo changes again to reconcile the status.', 'slug-sync' );
+				$log[] = __( 'The slugs were processed, but WordPress could not save the Undo checkpoint. Run Undo changes again to reconcile the status.', 'slugsync' );
 			}
 		}
 
@@ -4222,7 +4222,7 @@ class Slug_Sync {
 		if ( $failed ) {
 			printf(
 				/* translators: 1: restored count, 2: skipped count, 3: failed count. */
-				esc_html__( 'Undo is incomplete: restored %1$d slugs, skipped %2$d, and failed to restore %3$d. Fix the reported database error and use Undo changes again; successful rows will not be repeated.', 'slug-sync' ),
+				esc_html__( 'Undo is incomplete: restored %1$d slugs, skipped %2$d, and failed to restore %3$d. Fix the reported database error and use Undo changes again; successful rows will not be repeated.', 'slugsync' ),
 				(int) $restored,
 				(int) $skipped,
 				(int) $failed
@@ -4230,7 +4230,7 @@ class Slug_Sync {
 		} else {
 			printf(
 				/* translators: 1: number restored, 2: number skipped. */
-				esc_html__( 'Undo finished: restored %1$d slugs and skipped %2$d items that were missing, had a different current slug, or could no longer reclaim their old slug.', 'slug-sync' ),
+				esc_html__( 'Undo finished: restored %1$d slugs and skipped %2$d items that were missing, had a different current slug, or could no longer reclaim their old slug.', 'slugsync' ),
 				(int) ( $restored + $already ),
 				(int) $skipped
 			);

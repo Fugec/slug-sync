@@ -22,12 +22,12 @@ final class AssetLoadingTest extends TestCase {
 		Slug_Sync::enqueue_assets( 'tools_page_slug-sync' );
 
 		$this->assertSame(
-			'https://example.test/wp-content/plugins/slug-sync/assets/admin.css',
+			'https://example.test/wp-content/plugins/slugsync/assets/admin.css',
 			$GLOBALS['slug_sync_test_styles']['slug-sync-admin']['src']
 		);
 		$this->assertSame( SLUG_SYNC_VERSION, $GLOBALS['slug_sync_test_styles']['slug-sync-admin']['version'] );
 		$this->assertSame(
-			'https://example.test/wp-content/plugins/slug-sync/assets/admin.js',
+			'https://example.test/wp-content/plugins/slugsync/assets/admin.js',
 			$GLOBALS['slug_sync_test_scripts']['slug-sync-admin']['src']
 		);
 		$this->assertTrue( $GLOBALS['slug_sync_test_scripts']['slug-sync-admin']['in_footer'] );
